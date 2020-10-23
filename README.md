@@ -2,7 +2,7 @@
 
 
 <p align="center">
-  <img width = "500" src="./src/images/logo_pyaneti.png"/>
+  <img width = "500" src="https://github.com/oscaribv/pyaneti/blob/master/src/images/logo_pyaneti.png"/>
 </p>
 
 <a href="https://academic.oup.com/mnras/advance-article/doi/10.1093/mnras/sty2472/5094600"><img src="https://img.shields.io/badge/MNRAS-2019,482,1017-blueviolet.svg" alt="MNRAS" /></a>
@@ -42,3 +42,6 @@ use it with caution.
 
 I have not created tutorials for running single transits, GPs, and multi-bands fits yet. 
 If you want to try one of these, feel free to contact me. 
+
+If you want to get notifications every time this repository is updated, click on the watch button
+in the top right corner of this github page.
