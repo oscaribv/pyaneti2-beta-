@@ -65,6 +65,31 @@ implicit none
   integer, intent(in), dimension(0:n_data-1)  :: trlab !this indicates the instrument label
   real(kind=mireal), intent(in), dimension(0:5,0:npl-1) :: pars
   real(kind=mireal), intent(in), dimension(0:nradius*npl-1) :: rps
+  !pars = T0, P, e, w, b, a/R*, Rp/R*
+  real(kind=mireal), intent(in) :: t_cad(0:nbands-1)
+  real(kind=mireal), intent(in), dimension (0:2*nbands-1) :: ldc
+  real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out !output flux model
+
+  if (nradius == 1) then
+    call flux_tr_single(xd,pars,rps,ldc,n_cad(0),t_cad(0),n_data,npl,flux_out)
+  else
+    call flux_tr_multiband(xd,trlab,pars,rps,ldc,n_cad,t_cad,nbands,nradius,n_data,npl,flux_out)
+  end if
+
+end subroutine
+
+subroutine flux_tr_multiband(xd,trlab,pars,rps,ldc,&
+           n_cad,t_cad,nbands,nradius,n_data,npl,flux_out)
+use constants
+implicit none
+
+!In/Out variables
+  integer, intent(in) :: n_data, npl, nbands, nradius
+  integer, intent(in) :: n_cad(0:nbands-1)
+  real(kind=mireal), intent(in), dimension(0:n_data-1)  :: xd
+  integer, intent(in), dimension(0:n_data-1)  :: trlab !this indicates the instrument label
+  real(kind=mireal), intent(in), dimension(0:5,0:npl-1) :: pars
+  real(kind=mireal), intent(in), dimension(0:nradius*npl-1) :: rps
 !  real(kind=mireal), intent(in), dimension(0:nbands-1,0:npl-1) :: rps
   !pars = T0, P, e, w, b, a/R*, Rp/R*
   real(kind=mireal), intent(in) :: t_cad(0:nbands-1)
@@ -150,38 +175,37 @@ implicit none
 end subroutine
 
 !Flux for a single band fit
-subroutine flux_tr_single(xd,pars,ldc,&
+subroutine flux_tr_single(xd,pars,rps,ldc,&
            n_cad,t_cad,n_data,npl,flux_out)
+use constants
 implicit none
 
 !In/Out variables
   integer, intent(in) :: n_data, n_cad, npl
-  double precision, intent(in), dimension(0:n_data-1)  :: xd
-  double precision, intent(in), dimension(0:6,0:npl-1) :: pars
+  real(kind=mireal), intent(in), dimension(0:n_data-1)  :: xd
+  real(kind=mireal), intent(in), dimension(0:5,0:npl-1) :: pars
+  real(kind=mireal), intent(in), dimension(0:npl-1) :: rps
   !pars = T0, P, e, w, b, a/R*, Rp/R*
-  double precision, intent(in) :: t_cad
-  double precision, intent(in), dimension (0:1) :: ldc
-  double precision, intent(out), dimension(0:n_data-1) :: flux_out
+  real(kind=mireal), intent(in) :: t_cad
+  real(kind=mireal), intent(in), dimension (0:1) :: ldc
+  real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out
 !Local variables
-  double precision, dimension(0:n_data-1) :: flux_per_planet
-  double precision, dimension(0:n_data-1) :: mu
-  double precision :: npl_dbl, small, u1, u2, rp(0:npl-1)
-  double precision, dimension(0:n_cad-1,0:npl-1)  :: flux_ub
-  double precision, dimension(0:n_cad-1)  :: xd_ub, z, fmultip
+  real(kind=mireal), dimension(0:n_data-1) :: flux_per_planet
+  real(kind=mireal), dimension(0:n_data-1) :: mu
+  real(kind=mireal) :: npl_dbl, u1, u2
+  real(kind=mireal), dimension(0:n_cad-1,0:npl-1)  :: flux_ub
+  real(kind=mireal), dimension(0:n_cad-1)  :: xd_ub, z, fmultip
   integer :: n, j, k(0:n_cad-1)
 !External function
   external :: occultquad, find_z
 
-  small = 1.d-5
   npl_dbl = dble(npl)
 
   u1 = ldc(0)
   u2 = ldc(1)
 
-  !Get planet radius
-  rp(:) = pars(6,:)
 
-  ! k(:) = (/(n, n=0,n_cad(trlab(j))-1, 1)/)
+  k(:) = (/(n, n=0,n_cad-1, 1)/)
 
   flux_per_planet(:) = 0.d0
   flux_ub(:,:) = 0.d0
@@ -196,7 +220,7 @@ implicit none
       !Each z is independent for each planet
       call find_z(xd_ub,pars(0:5,n),z,n_cad)
 
-      if ( ALL( z > 1.d0 + rp(n) ) .or. rp(n) < small ) then
+      if ( ALL( z > 1.d0 + rps(n) ) .or. rps(n) < small ) then
 
         flux_per_planet(j) = flux_per_planet(j) + 1.d0 !This is not eclipse
         flux_ub(:,n) = 0.d0
@@ -204,8 +228,8 @@ implicit none
       else
 
         !Now we have z, let us use Agol's routines
-        call occultquad(z,u1,u2,rp(n),flux_ub(:,n),mu,n_cad)
-        !call qpower2(z,rp(n),u1,u2,flux_ub(:,n),n_cad)
+        call occultquad(z,u1,u2,rps(n),flux_ub(:,n),mu,n_cad)
+        !call qpower2(z,rps(n),u1,u2,flux_ub(:,n),n_cad)
 
       end if
 
