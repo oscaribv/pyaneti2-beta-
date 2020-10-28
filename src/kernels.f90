@@ -45,7 +45,8 @@
      call MultiQP5(pars,x1,x2,'EX',cov,nx1,nx2)
   !---------------------------------------------
   else if ( kernel == 'R15' ) then
-     call R15MultiKernel(pars,x1,x2,cov,nx1,nx2)
+     print *, 'The kernel R15 has been removed since the same fit can be done with  the kernel MQ2'
+     stop
   else
      print *, 'ERROR: Kernel ', kernel,' is not defined!'
      stop

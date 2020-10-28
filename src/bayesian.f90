@@ -161,21 +161,7 @@ implicit none
       !chi2_rv = 0.d0
       nll_rv = log_errs - 0.5 * chi2_rv
 
-    else if (kernel_rv == 'R15' ) then
-
-    !This is the V. Rajpaul Framework
-    !our x_rv and y_rv contains RV, LogR and BIS
-    res_rv = 0.0
-    call find_res_rv(x_rv(0:size_rv/3-1),y_rv(0:size_rv/3-1),rvlab(0:size_rv/3-1),&
-                     pars_rv,flag_rv,res_rv(0:size_rv-1),size_rv/3,ntels,npl)
-    res_rv(1*size_rv/3:2*size_rv/3-1) = y_rv(1*size_rv/3:2*size_rv/3-1) - pars(srv+rvlab(1*size_rv/3:2*size_rv/3-1))
-    res_rv(2*size_rv/3:3*size_rv/3-1) = y_rv(2*size_rv/3:3*size_rv/3-1) - pars(srv+rvlab(2*size_rv/3:3*size_rv/3-1))
-
-    call NLL_GP(pk_rv,kernel_rv,x_rv,res_rv,e_rv,jrv,jrvlab,nll_rv,chi2_rv,np_rv,size_rv,njrv)
-
-    nll_rv = - nll_rv
-
-    else if (kernel_rv == 'VR2' .or. kernel_rv(1:2) == 'MQ' .or. kernel_rv(1:2) == 'EX' ) then
+    else if ( kernel_rv(1:2) == 'MQ' .or. kernel_rv(1:2) == 'EX' ) then
 
     !Check how many time-series we have
     !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran

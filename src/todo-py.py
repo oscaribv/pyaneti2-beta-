@@ -590,7 +590,7 @@ def joint_fit():
         krv_prior_vals = krv_priors
         krv_labels = ['A', 'le', 'lp', 'P_GP']
     # Add remaining kernels
-    elif kernel_rv == 'R15' or kernel_rv == 'VR2' or kernel_rv[0:2] == 'MQ':
+    elif kernel_rv[0:2] == 'MQ':
         krv_prior_flag = fit_krv
         krv_prior_vals = krv_priors
         krv_labels = [None]*len(fit_krv)
