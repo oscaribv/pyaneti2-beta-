@@ -38,7 +38,7 @@ subroutine get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,
 
 end subroutine get_QP_gammas
 
-subroutine get_QP_gammas1(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,npars)
+subroutine get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,npars)
   use constants
   implicit none
   !
@@ -50,9 +50,7 @@ subroutine get_QP_gammas1(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
   real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj
   real(kind=mireal) :: l !Lambda parameter for the square exponential kernel
 
-  l = exp(pars(0))
-  !l = pars(1)
-  !P  = pars(2)
+  l = pars(0)
 
   call fcdist(x1,x2,titj,nx1,nx2)
 
@@ -67,7 +65,28 @@ subroutine get_QP_gammas1(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
   gamma_dg_dg = ( 1./l/l - titj*titj/l/l/l/l)
   gamma_dg_dg = gamma_g_g * gamma_dg_dg
 
-end subroutine get_QP_gammas1
+end subroutine get_EXP_gammas
+
+!This subroutine allow us to select what gammas do we want
+subroutine get_gammas(x1,x2,pars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,npars)
+  use constants
+  implicit none
+  !
+  integer, intent(in) :: nx1, nx2, npars
+  real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  real(kind=mireal), intent(in) ::  pars(0:npars-1)
+  character(len=2), intent(in)  :: kernel
+  real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
+  !
+
+  if (kernel == 'MQ') then
+        call get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,3)
+  else if (kernel == 'EX') then
+      call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
+  end if
+
+end subroutine
+
 !This subroutine computes the multi-dimensional GP framework as it appears in
 !Rajpaul et al., (2015, https://academic.oup.com/mnras/article/452/3/2269/1079217)
 !for a Quasi-Periodic Kernel
@@ -92,7 +111,7 @@ subroutine R15MultiKernel(pars,x1,x2,cov,nx1,nx2)
   Vc = pars(0); Vr = pars(1); Lc = pars(2); Lr = pars(3); Bc = pars(4); Br = pars(5)
   hyperpars = pars(6:)
 
-  call get_QP_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,3)
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,'MQ',gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,3)
 
   k11 = Vc**2 * gamma_g_g + Vr**2 * gamma_dg_dg
 
@@ -135,7 +154,7 @@ end subroutine R15MultiKernel
 
 !This subroutine computes the multi-dimensional GP matrix for one time-serie
 !With a QP kernel
-subroutine MultiQP1(pars,x1,x2,cov,nx1,nx2)
+subroutine MultiQP1(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -143,33 +162,22 @@ subroutine MultiQP1(pars,x1,x2,cov,nx1,nx2)
   real(kind=mireal), intent(in) :: pars(0:4)
   real(kind=mireal), intent(in) :: x1(0:nx1-1)
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
-  !A = pars(0), lambda_p = pars(1), lambda_q = pars(2), P = pars(3)
   !
-  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, phi, sinphi, gamma_dg_dg, gamma_g_g
-  real(kind=mireal) :: Ac, Ar, lp, le, P
+  integer, parameter :: m = 1
+  integer :: npars
+  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: gamma_dg_dg, gamma_g_g,gamma_dg_g,gamma_g_dg
+  real(kind=mireal) :: Ac, Ar
+  real(kind=mireal) :: hyperpars(0:2)
+
+  npars = size(pars) - 2
 
   Ac = pars(0)
   Ar = pars(1)
-  le = pars(2)
-  lp = pars(3)
-  P  = pars(4)
+  hyperpars(:) = pars(2:)
 
-  !Get the x_i - x_j
-  call fcdist(x1,x2,titj,nx1,nx2)
-
-  phi = 2.*pi*titj/P
-
-  sinphi = sin(phi)
-
-  gamma_g_g = - (sin(phi/2.))**2/2./lp**2 - titj**2/2./le**2
-  gamma_g_g = exp(gamma_g_g)
-
-  gamma_dg_dg = - pi**2*sinphi**2/(4.*P**2*lp**4) &
-                + pi**2*cos(phi)/P**2/lp**2         &
-                - phi*sinphi/(2.*lp**2*le**2)     &
-                - titj**2/le**4                     &
-                + 1./le**2
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
 
   gamma_dg_dg = gamma_g_g * gamma_dg_dg
 
@@ -179,13 +187,14 @@ end subroutine MultiQP1
 
 !This subroutine computes the multi-dimensional GP matrix for two time-series
 !With a QP kernel
-subroutine MultiQP2(pars,x1,x2,cov,nx1,nx2)
+subroutine MultiQP2(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:6) !There are only two parameters for this kernel
   real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
   integer, parameter :: m = 2
@@ -201,7 +210,7 @@ subroutine MultiQP2(pars,x1,x2,cov,nx1,nx2)
   Vc = pars(0); Vr = pars(1); Lc = pars(2); Lr = pars(3)
   hyperpars(:) = pars(4:)
 
-  call get_QP_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
 
   k11 = Vc**2 * gamma_g_g + Vr**2 * gamma_dg_dg
 
@@ -226,13 +235,14 @@ subroutine MultiQP2(pars,x1,x2,cov,nx1,nx2)
 end subroutine MultiQP2
 
 !
-subroutine MultiQP3(pars,x1,x2,cov,nx1,nx2)
+subroutine MultiQP3(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:8) !There are only two parameters for this kernel
   real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
   integer, parameter :: m = 3
@@ -249,7 +259,7 @@ subroutine MultiQP3(pars,x1,x2,cov,nx1,nx2)
   a1 = pars(0); b1 = pars(1); a2 = pars(2); b2 = pars(3); a3 = pars(4); b3 = pars(5)
   hyperpars(:) = pars(6:)
 
-  call get_QP_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
 
   k11 = a1**2 * gamma_g_g + b1**2 * gamma_dg_dg
 
@@ -289,13 +299,14 @@ subroutine MultiQP3(pars,x1,x2,cov,nx1,nx2)
 
 end subroutine MultiQP3
 !!
-subroutine MultiQP4(pars,x1,x2,cov,nx1,nx2)
+subroutine MultiQP4(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:10)
   real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
   integer, parameter :: m = 4
@@ -313,7 +324,7 @@ subroutine MultiQP4(pars,x1,x2,cov,nx1,nx2)
   a1 = pars(0); b1 = pars(1); a2 = pars(2); b2 = pars(3); a3 = pars(4); b3 = pars(5); a4 = pars(6); b4 = pars(7)
   hyperpars(:) = pars(8:)
 
-  call get_QP_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
 
   k11 = a1**2 * gamma_g_g + b1**2 * gamma_dg_dg
 
@@ -379,13 +390,14 @@ subroutine MultiQP4(pars,x1,x2,cov,nx1,nx2)
 
 end subroutine MultiQP4
 !
-subroutine MultiQP5(pars,x1,x2,cov,nx1,nx2)
+subroutine MultiQP5(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:12)
   real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
   integer, parameter :: m = 5
@@ -405,7 +417,7 @@ subroutine MultiQP5(pars,x1,x2,cov,nx1,nx2)
   a5 = pars(8); b5 = pars(9)
   hyperpars(:) = pars(10:)
 
-  call get_QP_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
 
   k11 = a1**2 * gamma_g_g + b1**2 * gamma_dg_dg
 
@@ -519,7 +531,7 @@ end subroutine MultiQP5
 !  lp = pars(ndim*2+1)
 !   P = pars(ndim*2+2)
 !
-!  call get_QP_gammas(x1(0:nx1/ndim-1),x2(0:nx2/ndim-1),le,lp,P,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,&
+!  call get_gammas(x1(0:nx1/ndim-1),x2(0:nx2/ndim-1),le,lp,P,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,&
 !                     nx1/ndim,nx2/ndim)
 !
 !  if ( nx1 .ne. nx2  ) then !Compute the K's for not squared matrices

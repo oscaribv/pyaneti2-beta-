@@ -175,9 +175,12 @@ implicit none
 
     nll_rv = - nll_rv
 
-    else if (kernel_rv == 'VR2' .or. kernel_rv(1:2) == 'MQ' ) then
+    else if (kernel_rv == 'VR2' .or. kernel_rv(1:2) == 'MQ' .or. kernel_rv(1:2) == 'EX' ) then
 
-    mk = (np_rv - 3)/2
+    !Check how many time-series we have
+    !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran
+    read(kernel_rv(3:3),'(i1)') mk
+
     !This is the V. Rajpaul Framework
     res_rv = 0.0
     call find_res_rv(x_rv(0:size_rv/mk-1),y_rv(0:size_rv/mk-1),rvlab(0:size_rv/mk-1),&

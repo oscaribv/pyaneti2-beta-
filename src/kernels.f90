@@ -21,20 +21,31 @@
      call QPKernel(pars,x1,x2,cov,nx1,nx2)
   else if ( kernel == 'QP2' ) then
      call QPKernel2(pars,x1,x2,cov,nx1,nx2)
+  !-Multi-GP Quasi-periodic Kernel
   else if ( kernel == 'MQ1' ) then
-     call MultiQP1(pars,x1,x2,cov,nx1,nx2)
+     call MultiQP1(pars,x1,x2,'MQ',cov,nx1,nx2)
   else if ( kernel == 'MQ2' ) then
-     call MultiQP2(pars,x1,x2,cov,nx1,nx2)
+     call MultiQP2(pars,x1,x2,'MQ',cov,nx1,nx2)
   else if ( kernel == 'MQ3' ) then
-     call MultiQP3(pars,x1,x2,cov,nx1,nx2)
+     call MultiQP3(pars,x1,x2,'MQ',cov,nx1,nx2)
   else if ( kernel == 'MQ4' ) then
-     call MultiQP4(pars,x1,x2,cov,nx1,nx2)
+     call MultiQP4(pars,x1,x2,'MQ',cov,nx1,nx2)
   else if ( kernel == 'MQ5' ) then
-     call MultiQP5(pars,x1,x2,cov,nx1,nx2)
+     call MultiQP5(pars,x1,x2,'MQ',cov,nx1,nx2)
+  !-Multi-GP Exponential Kernel
+  else if ( kernel == 'EX1' ) then
+     call MultiQP1(pars,x1,x2,'EX',cov,nx1,nx2)
+  else if ( kernel == 'EX2' ) then
+     call MultiQP2(pars,x1,x2,'EX',cov,nx1,nx2)
+  else if ( kernel == 'EX3' ) then
+     call MultiQP3(pars,x1,x2,'EX',cov,nx1,nx2)
+  else if ( kernel == 'EX4' ) then
+     call MultiQP4(pars,x1,x2,'EX',cov,nx1,nx2)
+  else if ( kernel == 'EX5' ) then
+     call MultiQP5(pars,x1,x2,'EX',cov,nx1,nx2)
+  !---------------------------------------------
   else if ( kernel == 'R15' ) then
      call R15MultiKernel(pars,x1,x2,cov,nx1,nx2)
-!  else if ( kernel == 'VR2' ) then
-!     call QPMultiKernel(pars,x1,x2,cov,nx1,nx2,mkernel)
   else
      print *, 'ERROR: Kernel ', kernel,' is not defined!'
      stop
