@@ -58,10 +58,10 @@ def plot_rv_timeseries():
         # Create the residuals once removed the planet signals
         yvec_noplanet = np.concatenate(rv_no_offset)
         yvec_planet = np.concatenate(rv_residuals)
-        #yvec_planet = np.concatenate(rv_no_offset)
+        #The first elements of the array correspond to the GP, so we want the vector with no planets and no offset
         for i in range(int(len(mega_rv)/ns)):
             yvec[i] = yvec_planet[i]
-        # Now, let us store the ancilliary data vectors
+        # Now, let us store the ancilliary data vectors, so we want to remove only the offsets
         for i in range(int(len(mega_rv)/ns), int(len(mega_rv))):
             yvec[i] = yvec_noplanet[i]
         evec = mega_err
@@ -71,6 +71,8 @@ def plot_rv_timeseries():
         # Let us remove the GP model from the data
         m_gp, C_gp = pti.pred_gp(
             kernel_rv, pk_rv, xvec, yvec, evec, xvec, jrv, jrvlab)
+        #Now we can remove the GP model to the data
+        yvec = yvec - m_gp
         # -----------------------------------------------------------------------------------
         # Let us create random samples of data
         if False:
@@ -86,7 +88,6 @@ def plot_rv_timeseries():
                 opars.close()
         # -----------------------------------------------------------------------------------
         #
-        yvec_noplanet = yvec_noplanet - m_gp
         # Let us create the vectors that we will use for the plots
         plot_vector = [None]*ns
         nts = len(rvx)
@@ -121,6 +122,8 @@ def plot_rv_timeseries():
     vec_x = np.concatenate(time_all)
     #yvec_noplanet = np.concatenate(rv_residuals)
     vec_y = np.concatenate(rv_residuals)
+    if kernel_rv[0:2] == 'VR' or kernel_rv[0:3] == 'R15' or kernel_rv[0:2] == 'MQ':
+        vec_y = np.array(yvec)
     vec_z = np.concatenate(new_errs_all)/cfactor
     #
     xdata = vec_x
@@ -134,7 +137,7 @@ def plot_rv_timeseries():
         # Create the vector with the data needed in the create_nice_plot function
         for o in range(0, ns):
             rv_dvec = [xdata[o*ts_len:(o+1)*ts_len], ydata[o*ts_len:(o+1)*ts_len], edata[o*ts_len:(o+1)*ts_len],
-                       ejdata[o*ts_len:(o+1)*ts_len], yvec_noplanet[o*ts_len:(o+1)*ts_len]*cfactor, tlab[o*ts_len:(o+1)*ts_len]]
+                       ejdata[o*ts_len:(o+1)*ts_len], res[o*ts_len:(o+1)*ts_len], tlab[o*ts_len:(o+1)*ts_len]]
             rv_dvecnp = np.asarray(rv_dvec)
             mvec = plot_vector[o]
             mvecnp = np.asarray(mvec)
@@ -158,7 +161,7 @@ def plot_rv_timeseries():
                 plot_labels_rv = [
                     rv_xlabel[o*ns:(o+1)*ns], rv_labels[o], rv_res[o]]
             create_nice_plot(mvec, rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
-                             plot_residuals=False, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha)
+                             plot_residuals=True, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha)
     else:
         rv_dvec = [xdata, ydata, edata, ejdata, res, tlab]
         plot_labels_rv = [rv_xlabel, 'RV (m/s)', 'Residuals (m/s)']
@@ -169,8 +172,7 @@ def plot_rv_timeseries():
     # Create residuals file
     of = open(out_f, 'w')
     for i in range(0, len(vec_x)):
-        #of.write(' %8.8f   %8.8f  %8.8f \n'%(vec_x[i],yvec_noplanet[i],vec_z[i]))
-        of.write(' %8.8f   %8.8f  %8.8f \n' % (vec_x[i], res[i], vec_z[i]))
+        of.write(' %8.8f   %8.8f  %8.8f  %s \n' % (vec_x[i], res[i], vec_z[i], telescopes_labels[tlab[i]]))
 
     of.close()
 
