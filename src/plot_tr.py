@@ -35,8 +35,11 @@ def create_folded_tr_plots():
                         localy.append(megay[n])
                         locale.append(megae[n])
                         localt.append(0)
-                tr_vector[m] = create_tr_vector(
-                    localx, localy, locale, localt, pars_tr, rp_val, o, m)
+                try:
+                    tr_vector[m] = create_tr_vector(
+                        localx, localy, locale, localt, pars_tr, rp_val, o, m)
+                except:
+                    tr_vector[m] = np.array([0.]),np.array([1.]),np.array([1e-6]),np.array([0.]),np.array([1.]),np.array([1.]),np.array([0.]),np.array([1.])
 
             transpose_tr = np.asarray(tr_vector)
             transpose_tr = transpose_tr.transpose()
