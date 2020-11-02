@@ -334,7 +334,7 @@ def plot_lightcurve_timeseries():
 
     # Here I need to create a special trlab in order to separate the different colors
     # Now let us imagine that it works with 1-band
-    xmodel = np.arange(min(megax), max(megax), 5./24.)
+    xmodel = np.arange(min(megax), max(megax), 5./60./24.)
     my_trlab = [0]*len(xmodel)
     ymodel = pti.flux_tr(xmodel, my_trlab, pars_tr.transpose(),
                          rp_val, my_ldc, n_cad, t_cad, nradius)
