@@ -43,6 +43,17 @@
      call MultiQP4(pars,x1,x2,'EX',cov,nx1,nx2)
   else if ( kernel == 'EX5' ) then
      call MultiQP5(pars,x1,x2,'EX',cov,nx1,nx2)
+  !-Multi-GP Matern 5/2 Kernel
+  else if ( kernel == 'MF1' ) then
+     call MultiQP1(pars,x1,x2,'MF',cov,nx1,nx2)
+  else if ( kernel == 'MF2' ) then
+     call MultiQP2(pars,x1,x2,'MF',cov,nx1,nx2)
+  else if ( kernel == 'MF3' ) then
+     call MultiQP3(pars,x1,x2,'MF',cov,nx1,nx2)
+  else if ( kernel == 'MF4' ) then
+     call MultiQP4(pars,x1,x2,'MF',cov,nx1,nx2)
+  else if ( kernel == 'MF5' ) then
+     call MultiQP5(pars,x1,x2,'MF',cov,nx1,nx2)
   !---------------------------------------------
   else if ( kernel == 'R15' ) then
      print *, 'The kernel R15 has been removed since the same fit can be done with  the kernel MQ2'

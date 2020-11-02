@@ -594,11 +594,18 @@ def joint_fit():
         krv_prior_flag = fit_krv
         krv_prior_vals = krv_priors
         krv_labels = [None]*len(fit_krv)
-        for m in range(0, len(fit_krv)-3):
+        for m in range(len(fit_krv) - 3):
             krv_labels[m] = 'A'+str(m)
-        krv_labels[len(fit_krv)-3] = 'le'
-        krv_labels[len(fit_krv)-2] = 'lp'
+        krv_labels[len(fit_krv)-3] = 'lambda_e'
+        krv_labels[len(fit_krv)-2] = 'lambda_p'
         krv_labels[len(fit_krv)-1] = 'P_GP'
+    elif kernel_rv[0:2] == 'EX' or kernel_rv[0:2] == 'MF':
+        krv_prior_flag = fit_krv
+        krv_prior_vals = krv_priors
+        krv_labels = [None]*len(fit_krv)
+        for m in range(len(fit_krv)- 1):
+            krv_labels[m] = 'A'+str(m)
+        krv_labels[len(fit_krv)-1] = 'lambda_e'
 
     np_rv = len(krv_prior_flag)
 

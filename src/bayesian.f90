@@ -161,25 +161,25 @@ implicit none
       !chi2_rv = 0.d0
       nll_rv = log_errs - 0.5 * chi2_rv
 
-    else if ( kernel_rv(1:2) == 'MQ' .or. kernel_rv(1:2) == 'EX' ) then
+    else if ( kernel_rv(1:2) == 'MQ' .or. kernel_rv(1:2) == 'EX' .or. kernel_rv == 'MF' ) then
 
-    !Check how many time-series we have
-    !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran
-    read(kernel_rv(3:3),'(i1)') mk
+      !Check how many time-series we have
+      !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran
+      read(kernel_rv(3:3),'(i1)') mk
 
-    !This is the V. Rajpaul Framework
-    res_rv = 0.0
-    call find_res_rv(x_rv(0:size_rv/mk-1),y_rv(0:size_rv/mk-1),rvlab(0:size_rv/mk-1),&
+      !This is the V. Rajpaul Framework
+      res_rv = 0.0
+      call find_res_rv(x_rv(0:size_rv/mk-1),y_rv(0:size_rv/mk-1),rvlab(0:size_rv/mk-1),&
                      pars_rv,flag_rv,res_rv(0:size_rv/mk-1),size_rv/mk,ntels,npl)
-    do i = 1, mk - 1
-      res_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) = y_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) &
-                                                        - pars(srv+rvlab(i*size_rv/mk:(i+1)*size_rv/mk-1))
+      do i = 1, mk - 1
+          res_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) = y_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) &
+                                                          - pars(srv+rvlab(i*size_rv/mk:(i+1)*size_rv/mk-1))
 
-    end do
+      end do
 
-    call NLL_GP(pk_rv,kernel_rv,x_rv,res_rv,e_rv,jrv,jrvlab,nll_rv,chi2_rv,np_rv,size_rv,njrv)
+      call NLL_GP(pk_rv,kernel_rv,x_rv,res_rv,e_rv,jrv,jrvlab,nll_rv,chi2_rv,np_rv,size_rv,njrv)
 
-    nll_rv = - nll_rv
+      nll_rv = - nll_rv
 
     else
 

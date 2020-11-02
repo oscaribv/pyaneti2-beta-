@@ -67,6 +67,41 @@ subroutine get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
 
 end subroutine get_EXP_gammas
 
+subroutine get_M52_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,npars)
+  use constants
+  implicit none
+  !
+  integer, intent(in) :: nx1, nx2, npars
+  real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  real(kind=mireal), intent(in) ::  pars(0:npars-1)
+  real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
+  !
+  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, expt, dt
+  real(kind=mireal) :: sq5
+  real(kind=mireal) :: l !Lambda parameter for the square exponential kernel
+
+
+  l = pars(0)
+
+  sq5  = sqrt(5.)
+  dt   = sq5*titj/l
+  expt = exp(-dt)
+
+  call fcdist(x1,x2,titj,nx1,nx2)
+
+  gamma_g_g = 1. + dt + dt*dt/3.
+  gamma_g_g = gamma_g_g * expt
+
+  gamma_g_dg = expt * dt * (dt + 1.)
+  gamma_g_dg = - sq5 / 3. / l *gamma_g_dg
+
+  gamma_dg_g = - gamma_g_dg
+
+  gamma_dg_dg = (dt*dt - dt - 1.) * expt
+  gamma_dg_dg = - 5./3./ l / l * gamma_dg_dg
+
+end subroutine get_M52_gammas
+
 !This subroutine allow us to select what gammas do we want
 subroutine get_gammas(x1,x2,pars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,npars)
   use constants
@@ -79,9 +114,11 @@ subroutine get_gammas(x1,x2,pars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg
   real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
   !
 
-  if (kernel == 'MQ') then
+  if (kernel == 'MQ') then !Quasi-periodic Kernel
         call get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,3)
-  else if (kernel == 'EX') then
+  else if (kernel == 'EX') then !Exponential Kernel
+      call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
+  else if (kernel == 'MF') then !Matern 5/2 Kernel
       call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
   end if
 
@@ -178,8 +215,6 @@ subroutine MultiQP1(pars,x1,x2,kernel,cov,nx1,nx2)
   hyperpars(:) = pars(2:)
 
   call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
-
-  gamma_dg_dg = gamma_g_g * gamma_dg_dg
 
   cov = Ac*Ac*gamma_g_g + Ar*Ar*gamma_dg_dg
 
