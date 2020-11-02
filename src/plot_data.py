@@ -49,7 +49,7 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
         gs = gridspec.GridSpec(nrows=1, ncols=1)
     gs.update(hspace=0.00)
     # Timeseries with data and model plot
-    ax0 = plt.subplot(gs[0])
+    ax0 = plt.subplot(gs[0],rasterized=True)
     plt.tick_params(labelsize=fos, direction='in')
     plt.minorticks_on()
     plt.xlabel("")
@@ -105,7 +105,7 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
     # NEW SUBPLOT: RESIDUALS
     #
     if plot_residuals:
-        ax1 = plt.subplot(gs[1])
+        ax1 = plt.subplot(gs[1],rasterized=True)
         plt.tick_params(labelsize=fos, direction='in')
         plt.xlabel(label_x, fontsize=fos)
         plt.tick_params(axis='x', which='minor', direction='in',
@@ -135,7 +135,7 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
         plt.minorticks_on()
         plt.xlim(min(tmodel), max(tmodel))
     #
-    plt.savefig(fname, format='pdf', bbox_inches='tight')
+    plt.savefig(fname, format='pdf', bbox_inches='tight',dpi=300)
     plt.savefig(fname[:-3]+'png', format='png', bbox_inches='tight', dpi=300)
     plt.close()
 
@@ -292,7 +292,7 @@ def create_chains_plot(vari,posterior,params,labels,plot_parameters):
                 plt.plot(vari[i::new_nwalkers],params[param][i::new_nwalkers],alpha=0.5)
         n += 1
 
-    plt.savefig(fname, bbox_inches='tight')
+    plt.savefig(fname, bbox_inches='tight',dpi=250)
     plt.savefig(fname[:-3]+'png', bbox_inches='tight',dpi=200)
     plt.close()
 
@@ -366,7 +366,7 @@ def create_plot_posterior(params, plabs, cbars='red', nb=50, num=[]):
                        numpoints=1, frameon=True, fontsize=fos*0.5)
         j = int(j + 1)
 
-    plt.savefig(fname, format='pdf', bbox_inches='tight')
+    plt.savefig(fname, format='pdf', bbox_inches='tight',dpi=250)
     fname = outdir+'/'+star+'_posterior.png'
     plt.savefig(fname, format='png', bbox_inches='tight', dpi=300)
     plt.close()
@@ -435,7 +435,7 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 plt.xlim(*limits[p])
                 plt.ylim(*limits[o])
 
-    plt.savefig(fname, format='pdf', bbox_inches='tight')
+    plt.savefig(fname, format='pdf', bbox_inches='tight',dpi=250)
     fname = outdir+'/'+star+'_correlations.png'
     plt.savefig(fname, format='png', bbox_inches='tight', dpi=300)
     plt.close()
@@ -471,7 +471,7 @@ def create_corner_plot():
                            show_titles=True,)
     fname = outdir+'/'+star+'_corner.pdf'
     print('Creating ', fname)
-    plt.savefig(fname, format='pdf', bbox_inches='tight')
+    plt.savefig(fname, format='pdf', bbox_inches='tight',dpi=250)
     fname = outdir+'/'+star+'_corner.png'
     plt.savefig(fname, format='png', bbox_inches='tight', dpi=300)
     plt.close()
