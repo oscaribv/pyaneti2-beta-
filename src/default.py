@@ -254,7 +254,8 @@ is_seaborn_plot = False
 # Default color palette for seaborn plots
 # More details about palettes at https://seaborn.pydata.org/tutorial/color_palettes.html
 seaborn_palette = 'deep'
-
+# Do we want rasterized pdf plots
+is_rasterized = True
 
 # Figure size default, python takes inches by default
 figure_size_x = 23./2.56  # 23cm

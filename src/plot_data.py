@@ -49,7 +49,7 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
         gs = gridspec.GridSpec(nrows=1, ncols=1)
     gs.update(hspace=0.00)
     # Timeseries with data and model plot
-    ax0 = plt.subplot(gs[0],rasterized=True)
+    ax0 = plt.subplot(gs[0],rasterized=is_rasterized)
     plt.tick_params(labelsize=fos, direction='in')
     plt.minorticks_on()
     plt.xlabel("")
@@ -105,7 +105,7 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
     # NEW SUBPLOT: RESIDUALS
     #
     if plot_residuals:
-        ax1 = plt.subplot(gs[1],rasterized=True)
+        ax1 = plt.subplot(gs[1],rasterized=is_rasterized)
         plt.tick_params(labelsize=fos, direction='in')
         plt.xlabel(label_x, fontsize=fos)
         plt.tick_params(axis='x', which='minor', direction='in',
@@ -271,7 +271,7 @@ def create_chains_plot(vari,posterior,params,labels,plot_parameters):
 
     plt.figure(1, figsize=(2*fsx, len(plot_parameters)*fsy))
     gs = gridspec.GridSpec(nrows=len(plot_parameters)+1, ncols=1)
-    plt.subplot(gs[0],rasterized=True)
+    plt.subplot(gs[0],rasterized=is_rasterized)
     plt.xlabel('iteration')
     plt.ylabel('Posterior')
     if is_clustering:
@@ -282,7 +282,7 @@ def create_chains_plot(vari,posterior,params,labels,plot_parameters):
             plt.plot(vari[i::new_nwalkers],posterior[i::new_nwalkers],alpha=0.5)
     n = 1
     for param in plot_parameters:
-        plt.subplot(gs[n],rasterized=True)
+        plt.subplot(gs[n],rasterized=is_rasterized)
         plt.ylabel(labels[param])
         if is_clustering:
             for i in range(new_nwalkers):
@@ -326,7 +326,7 @@ def create_plot_posterior(params, plabs, cbars='red', nb=50, num=[]):
     gs.update(wspace=0.025)
     j = int(0)
     for i in n:
-        ax0 = plt.subplot(gs[j],rasterized=True)
+        ax0 = plt.subplot(gs[j],rasterized=is_rasterized)
         vpar, lpar, rpar = find_vals_perc(params[i], 1.0)
         moda = my_mode(params[i])
         #best_val = params[i][minchi2_index]
@@ -397,7 +397,7 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
         for p,j in enumerate(n):
             if j > i:
                 continue
-            ax0 = plt.subplot(gs[o*ncols+p],rasterized=True)
+            ax0 = plt.subplot(gs[o*ncols+p],rasterized=is_rasterized)
             plt.tick_params(axis='y', which='both',
                             direction='in', labelleft=False)
             plt.tick_params(axis='x', which='both',

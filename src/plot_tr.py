@@ -103,7 +103,7 @@ def fancy_tr_plot(tr_vector, pnumber):
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[
                            3.0, 1./(1+(nbands-1)*0.75)])
     gs.update(hspace=0.00)
-    ax1 = plt.subplot(gs[0],rasterized=True)
+    ax1 = plt.subplot(gs[0],rasterized=is_rasterized)
     plt.tick_params(labelsize=fos, direction='in')
     x_lim = (min(np.concatenate(xtime))-local_T0)*tfc
     plt.xlim(x_lim, -x_lim)
@@ -162,7 +162,7 @@ def fancy_tr_plot(tr_vector, pnumber):
     # ------------------------------------------------------------
     # Plot the residuals
     # ------------------------------------------------------------
-    ax0 = plt.subplot(gs[1],rasterized=True)
+    ax0 = plt.subplot(gs[1],rasterized=is_rasterized)
     plt.tick_params(labelsize=fos, direction='in')
     for m in range(nbands):
         if (plot_tr_errorbars):
