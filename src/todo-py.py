@@ -667,6 +667,11 @@ def joint_fit():
         print('method = plot   -> Plot of a previous run')
         sys.exit('choose your favorite.')
 
+
+    #Change fortran file to a lighter csv file
+    data = np.loadtxt('all_data.dat',unpack=True)
+    np.savetxt('all_data.dat',data.T,delimiter=',',fmt='%1.12e')
+
 #
     newfile = outdir+'/'+star+'_all_data.dat'
     if (os.path.isfile('all_data.dat')):

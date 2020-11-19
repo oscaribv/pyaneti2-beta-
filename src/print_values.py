@@ -1,5 +1,3 @@
-from matplotlib import gridspec
-
 # Read the data
 # Dummy params vector contains
 # [0] -> i
@@ -22,7 +20,12 @@ skrv = strends + 2  # start of RV kernel parameters
 sktr = skrv + np_rv  # start of TR kernel parameters
 
 newfile = outdir+'/'+star+'_all_data.dat'
-dparams = np.loadtxt(newfile, comments='#', unpack=True)
+
+#If we are using the new pyaneti, then the file is in csv format
+try:
+    dparams = np.loadtxt(newfile, comments='#', unpack=True,delimiter=',')
+except: #use the old pyaneti files
+    dparams = np.loadtxt(newfile, comments='#', unpack=True)
 
 # Let us do the clustering
 params = list(dparams)
