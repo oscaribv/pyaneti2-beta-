@@ -658,6 +658,10 @@ def joint_fit():
             model_double,
             nwalkers, maxi, thin_factor, nconv)
 
+        #Change fortran file to a lighter csv file
+        data = np.loadtxt('all_data.dat',unpack=True)
+        np.savetxt('all_data.dat',data.T,delimiter=',',fmt='%1.12e')
+
     elif (method == 'plot'):
         print('I will only print the values and generate the plot')
 
@@ -668,9 +672,6 @@ def joint_fit():
         sys.exit('choose your favorite.')
 
 
-    #Change fortran file to a lighter csv file
-    data = np.loadtxt('all_data.dat',unpack=True)
-    np.savetxt('all_data.dat',data.T,delimiter=',',fmt='%1.12e')
 
 #
     newfile = outdir+'/'+star+'_all_data.dat'
