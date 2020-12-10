@@ -122,24 +122,39 @@
   !local variables
   real(kind=mireal), dimension(0:nx-1) :: s2
   real(kind=mireal) :: K(0:nx-1,0:nx-1)
-  real(kind=mireal) :: dummy(0:nx-1,0:nx-1)
+  real(kind=mireal) :: diag(0:nx-1,0:nx-1)
   real(kind=mireal) :: Ki(0:nx-1,0:nx-1)
+  !real(kind=mireal) :: Kiy(0:nx-1,0:0)
   real(kind=mireal) :: nl1, nl2
+  integer :: mk
 
   !covariance matrix for observed vector
   s2 = e**2 + jit(ljit)**2
   call covfunc(kernel,p,x,x,K,nx,nx,np)
-  dummy = K
-  call fill_diag(s2,dummy,nx)
-  K = K + dummy
+  call fill_diag(s2,diag,nx)
+  K = K + diag
   !Get the inverse matrix
-  dummy = K
-  !call inverse(dummy,Ki,nx)
-  call cholesky_inv_det(K,Ki,nl2,nx)
 
+  if ( kernel(1:2) == 'MQ' .or. kernel(1:2) == 'EX' .or. kernel == 'MF' ) then
+
+      !Check how many time-series we have
+      !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran
+      read(kernel(3:3),'(i1)') mk
+
+      !print *, mk
+
+      call invert_multi_gp_matrix(K,mk,Ki,nl2,nx)
+
+  else
+
+      call cholesky_inv_det(K,Ki,nl2,nx)
+
+  end if
+
+
+  !call DGEMM('n','n',nx,1,nx,1.d0,Ki,nx,y,nx,0.d0,Kiy,nx)
+  !nl1 = dot_product(y,Kiy(:,0))
   nl1 = dot_product(y,matmul(Ki,y))
-  !
-  !all findlogddet(K,nl2,nx)
   !
   chi2 = nl1
 
@@ -149,7 +164,6 @@
   if (chi2 < 0. .or. chi2 .ne. chi2  ) chi2 = huge(chi2)
 
   nll = 5.d-1*(chi2 + nl2 + nx * log_two_pi)
-
 
   end subroutine NLL_GP
 
@@ -260,10 +274,9 @@
   cov = - (gm*sin(pi*cov/P))**2 - cov**2/mt
   cov = A * exp(cov)
 
-  end subroutine QPKernel2
+end subroutine QPKernel2
 
-
-  subroutine QPdotKernel(pars,x1,x2,cov,nx1,nx2)
+subroutine QPdotKernel(pars,x1,x2,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -302,4 +315,5 @@
 
   cov = Ac*Ac*gamma_g_g + Ar*Ar*gamma_dg_dg
 
-  end subroutine QPdotKernel
+end subroutine QPdotKernel
+
