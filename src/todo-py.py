@@ -543,7 +543,7 @@ def joint_fit():
     # RV jitter priors
     if is_jitter_rv:
         jrv_prior_flag = ['m']*n_jrv
-        jrv_prior_vals = [1e-3,1.e-1]*n_jrv
+        jrv_prior_vals = [1e-3,1.]*n_jrv
         #jrv_prior_vals = [0.0, 0.05]*n_jrv
     else:
         jrv_prior_flag = ['f']*n_jrv

@@ -49,6 +49,8 @@ rstar = np.random.normal(
     loc=rstar_mean, scale=rstar_sigma, size=new_nwalkers*nconv)
 tstar = np.random.normal(
     loc=tstar_mean, scale=tstar_sigma, size=new_nwalkers*nconv)
+vsini = np.random.normal(
+    loc=vsini_mean, scale=vsini_sigma, size=new_nwalkers*nconv)
 
 # Calculate the BIC
 ndata = 0
@@ -147,12 +149,16 @@ if (method == 'mcmc' or method == 'plot'):
     opars.write('             INPUT STELLAR PARAMETERS\n')
     opars.write(
         '--------------------------------------------------------------\n')
-    opars.write('M_*     = %4.7f - %4.7f + %4.7f solar masses\n' %
+    opars.write('M_*     = %4.4f - %4.4f + %4.4f solar masses\n' %
                 (mstar_mean, mstar_sigma, mstar_sigma))
-    opars.write('R_*     = %4.7f - %4.7f + %4.7f solar radii\n' %
+    opars.write('R_*     = %4.4f - %4.4f + %4.4f solar radii\n' %
                 (rstar_mean, rstar_sigma, rstar_sigma))
-    opars.write('T_*     = %4.7f - %4.7f + %4.7f K\n' %
+    opars.write('T_*     = %4.4f - %4.4f + %4.4f K\n' %
                 (tstar_mean, tstar_sigma, tstar_sigma))
+    opars.write('vsini     = %4.4f - %4.4f + %4.4f km/s (for RM effect estimation)\n' %
+                (vsini_mean, vsini_sigma, vsini_sigma))
+    opars.write('J mag     = %4.4f  (for TSM estimation)\n' %
+                (mag_j))
     # tex
     #otex.write ('--------------------------------------------------------------\n')
     #otex.write ('             INPUT STELLAR PARAMETERS\n')
@@ -403,7 +409,7 @@ if (method == 'mcmc' or method == 'plot'):
             for m in range(0, nradius):
                 print_values(
                     1.e6*rr_vec[o*nradius+m]**2, 'depth'+bands[m], 'depth'+pl+bands[m], 'ppm', 'ppm')
-                print_values((np.sqrt(1.-b_vec[o]**2)*rr_vec[o*nradius+m]**2*vsini_mean)
+                print_values((np.sqrt(1.-b_vec[o]**2)*rr_vec[o*nradius+m]**2*vsini)
                              * 1.e3, 'RM'+bands[m], 'RM'+pl+bands[m], 'm/s', '${\\rm m\,s^{-1}}$')
             print_values(Fp, 'Insolation', 'insolation'+pl,
                          'F_Earth', '${\\rm F_{\\oplus}}$')

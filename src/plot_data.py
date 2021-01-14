@@ -222,12 +222,12 @@ if (is_b_factor):
 if (is_log_k):
     klab = '$\log_{10} K$'
 if (is_den_a):
-    alab = '$\\rho_{\star}^{-3}$'
+    alab = '$\\rho_{\star}$'
 # planet parameter labels
 for o in range(0, nplanets):
-    etiquetas = ['$T0$'+plabels[o], '$P$'+plabels[o], elab+plabels[o],
-                 wlab+plabels[o], ilab+plabels[o], alab+plabels[o],
-                 klab+plabels[o]]
+    etiquetas = ['$T0$'+plabels[o]+' [days]', '$P$'+plabels[o]+' [days]', elab+plabels[o],
+                 wlab+plabels[o], ilab+plabels[o], alab+plabels[o]+'[${\\rm g\,cm^{-3}}$]',
+                 klab+plabels[o]+'[${\\rm km\,s^{-1}}$]']
     labs.append(etiquetas)
 # planet radius labels
 for o in range(0, nplanets):
@@ -240,7 +240,7 @@ for m in range(0, nbands):
 labs.append(telescopes_labels)
 # jitter labels
 for o in range(0, n_jrv):
-    labs.append(['RV_jitter'+str(telescopes_labels[o])])
+    labs.append(['RV_jitter'+str(telescopes_labels[o])+'[m/s]'])
 for o in range(0, n_jtr):
     labs.append(['TR_jitter'+str(bands[o])])
 # trends labels
