@@ -225,10 +225,12 @@ if (method == 'mcmc' or method == 'plot'):
     # Transit durations aproximations (eq. 14, 15, 16 from Winn 2014)
         ec_factor = np.sqrt(
             (1. - e_vec[o]*e_vec[o])) / (1.0 + e_vec[o]*np.sin(w_vec[o]))
+        #total transit duration (from contact 1 to 4)
         trt_vec[o] = np.sqrt((1. + rr_vec[o])**2 - b_vec[o]
                              ** 2) / (ar_vec[o] * np.sin(i_vec[o]))
         trt_vec[o] = P_vec[o] / np.pi * \
             np.arcsin(trt_vec[o]) * ec_factor * 24.0
+        #full transit duration (from contract 2 to 3)
         tri_vec[o] = np.sqrt((1. - rr_vec[o])**2 - b_vec[o]
                              ** 2) / (ar_vec[o] * np.sin(i_vec[o]))
         tri_vec[o] = P_vec[o] / np.pi * \
@@ -322,6 +324,14 @@ if (method == 'mcmc' or method == 'plot'):
         Ls = (rstar)**2*(tstar/S_Teff)**4
         # planet insolation in Flux received at Earth
         Fp = Ls/a_vec[o]**2
+
+        #Estimate the maximum magnitude difference of a star that can generate a transit
+        #Based on eq. 4 of Vanderburg et al., (2019), ApJL, 881, L19
+        #First lest estimate t12 and t_13
+        t12_vec = (trt_vec[o] - tri_vec[o])/2. #assuming ingress and egress are the same
+        t13_vec = tri_vec[o] + t12_vec
+        delta_mag_vec = t12_vec**2/(t13_vec**2*rr_vec[o*nradius]**2)
+        delta_mag_vec = 2.5*np.log10(delta_mag_vec)
 
         # Convert units
         usymbol = '{\odot}'
@@ -423,6 +433,8 @@ if (method == 'mcmc' or method == 'plot'):
             print_values(tri_vec[o], 'T_full', 'tful'+pl, 'hours', 'hours')
             print_values((trt_vec[o] - tri_vec[o])/2.0,
                          'T_in/eg', 'teg'+pl, 'hours', 'hours')
+            print_values(delta_mag_vec,
+                         'Delta mag', 'delta_mag'+pl, 'eq. (4) Vanderburg et al., 2019', '')
             if is_single_transit:
                 print_values(tr_dur_vec*24., 'T_duration',
                              't_dur'+pl, 'hours', 'hours')
