@@ -94,9 +94,9 @@ def plot_rv_timeseries():
         nts = len(rvx)
         # This corresponds to the RV timeseries
         plot_vector[0] = [rvx, (rvy)*cfactor, m[0:nts]
-                          * cfactor, (rvy+m[0:nts])*cfactor]
+                          * cfactor, (rvy+m[0:nts])*cfactor,np.sqrt(np.matrix.diagonal(C[0:nts,0:nts]))*cfactor]
         for i in range(1, ns):
-            plot_vector[i] = [rvx, m[i*nts:(i+1)*nts]*cfactor]
+            plot_vector[i] = [rvx, m[i*nts:(i+1)*nts]*cfactor,np.sqrt(np.matrix.diagonal(C[i*nts:(i+1)*nts,i*nts:(i+1)*nts]))*cfactor]
     # are we plotting a GP together with the RV curve
     elif kernel_rv[0:2] != 'No':
         xvec = mega_time
@@ -162,7 +162,8 @@ def plot_rv_timeseries():
             else:
                 plot_labels_rv = [
                     rv_xlabel[o*ns:(o+1)*ns], rv_labels[o], rv_res[o]]
-            create_nice_plot(mvec, rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
+            #The mvec[:-1] is to ignore the extra dimension added to create the variance of the P
+            create_nice_plot(mvec[:-1], rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
                              plot_residuals=True, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha)
     else:
         rv_dvec = [xdata, ydata, edata, ejdata, res, tlab]
