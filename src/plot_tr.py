@@ -357,7 +357,7 @@ def plot_lightcurve_timeseries():
         mcolors = ['r', 'b', 'k']
         malpha = [0.7, 0.7, 0.9]
     else:
-        tr_mvec = [xmodel, ymodel]
+        tr_mvec = np.asarray([xmodel, ymodel])
         model_labels = ['Planetary signal']
         mcolors = ['k']
         malpha = [1.]
@@ -372,10 +372,19 @@ def plot_lightcurve_timeseries():
     # Recompute the error bars from the std of the residuals
     #new_err = np.std(new_res_flux,ddof=1)
 
+    #data vector
+    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab])
+
+    # save the data
+    np.savetxt(
+        outdir+'/'+star+'-trmodel_lightcurve.txt',tr_mvec.T)
+    np.savetxt(
+         outdir+'/'+star+'-trdata_lightcurve.txt',tr_dvec.T)
+
+
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
 
-    tr_dvec = [megax, megay, megae, megae, trres, trlab]
     plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
