@@ -373,18 +373,20 @@ def plot_lightcurve_timeseries():
     #new_err = np.std(new_res_flux,ddof=1)
 
     #data vector
-    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab])
+    tr_dvec_file = np.asarray([megax, megay, megae, trres, trlab])
 
     # save the data
+    header_1 = 'Time  Flux_model'
     np.savetxt(
-        outdir+'/'+star+'-trmodel_lightcurve.txt',tr_mvec.T)
+        outdir+'/'+star+'-trmodel_lightcurve.txt',tr_mvec.T,header=header_1,fmt='%1.7e %1.7e')
+    header_2 = 'Time  Flux eFlux residuals telescope_label'
     np.savetxt(
-         outdir+'/'+star+'-trdata_lightcurve.txt',tr_dvec.T)
+         outdir+'/'+star+'-trdata_lightcurve.txt',tr_dvec_file.T,header=header_2,fmt='%1.7e %1.7e %1.7e %1.7e %i')
 
 
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
-
+    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab])
     plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
