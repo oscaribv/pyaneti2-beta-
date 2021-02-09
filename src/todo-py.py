@@ -440,6 +440,8 @@ def bin_data(tvector, fvector, rvector, tbin):
     rbined = rbined[~np.isnan(rbined)]
     return xbined, fbined, rbined
 
+
+
 # -----------------------------------------------------------
 
 
@@ -543,7 +545,7 @@ def joint_fit():
     # RV jitter priors
     if is_jitter_rv:
         jrv_prior_flag = ['m']*n_jrv
-        jrv_prior_vals = [1e-3,1.]*n_jrv
+        jrv_prior_vals = [1e-3,0.1]*n_jrv
         #jrv_prior_vals = [0.0, 0.05]*n_jrv
     else:
         jrv_prior_flag = ['f']*n_jrv
@@ -583,6 +585,10 @@ def joint_fit():
         # This has to be a 4-dimensional vector with the prior limits
         krv_prior_vals = krv_priors
         krv_labels = ['A', 'Gamma', 'metric', 'P_GP']
+    elif kernel_rv == 'M32' or kernel_rv == 'M52':
+        krv_prior_flag = fit_krv
+        krv_prior_vals = krv_priors
+        krv_labels = ['A','metric']
     elif kernel_rv == 'QPK':
         # fit_krv has to be a four-dimensional vector (A,Gamma1,Gamma2,P)
         krv_prior_flag = fit_krv

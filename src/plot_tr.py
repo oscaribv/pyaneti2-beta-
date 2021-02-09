@@ -18,7 +18,7 @@ for m in range(0, nplanets):
 
 def create_folded_tr_plots():
 
-    for o in range(0, nplanets):
+    for o in range(nplanets):
 
         if (fit_tr[o]):
 
@@ -33,7 +33,6 @@ def create_folded_tr_plots():
                 localy = megay[indices]
                 locale = megae[indices]
                 localt = np.zeros(len(localx),dtype=int)
-
 
                 try:
                     tr_vector[m] = create_tr_vector(
@@ -68,30 +67,6 @@ def fancy_tr_plot(tr_vector, pnumber):
     res_res = tr_vector[6]
     fd_ub_unbinned = tr_vector[7]
 
-    # Do we want to plot a binned model?
-    tvector = np.concatenate(xtime)
-    rvector = np.concatenate(res_res)
-    tbin = 5./60./24.
-    fvector = np.concatenate(yflux)
-    leftt = min(tvector)
-    right = leftt + tbin
-    xbined = []
-    fbined = []
-    rbined = []
-    while (leftt < max(tvector)):
-        fdummy = []
-        rdummy = []
-        for i in range(0, len(tvector)):
-            if (tvector[i] > leftt and tvector[i] < right):
-                fdummy.append(fvector[i])
-                rdummy.append(rvector[i])
-        fbined.append(np.mean(fdummy))
-        rbined.append(np.mean(rdummy))
-        xbined.append((leftt + tbin/2.)*24.)
-        leftt = leftt + tbin
-        right = right + tbin
-    fbined = np.asarray(fbined)
-    rbined = np.asarray(rbined)
 
     if plot_binned_data:
         for o in range(0, len(tr_colors)):
@@ -114,7 +89,7 @@ def fancy_tr_plot(tr_vector, pnumber):
     dy = 0.
     for m in range(0, nbands):
         if (plot_tr_errorbars):
-            plt.errorbar((xtime-local_T0)*tfc, yflux, errors,
+            plt.errorbar((xtime[m]-local_T0)*tfc, yflux, errors,
                          color=tr_colors[m], fmt='.', alpha=1.0)
         else:
             plt.plot((xtime[m]-local_T0)*tfc, yflux[m]-deltay, color=tr_colors[m],
@@ -129,6 +104,8 @@ def fancy_tr_plot(tr_vector, pnumber):
                 dy = max(yflux[m+1])-min(yflux[m+1])
             deltay = deltay + dy
             if plot_binned_data:
+                tbin = 10./60.
+                xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m],tbin)
                 plt.plot(xbined, fbined, 'ro')
 
         # save the data
@@ -213,9 +190,8 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
     tt = tt/24.
 
     #span has to be given in units of days
-    if (len(span_tr) < 1):
-        span = 2*tt
-    else:
+    span = 2*tt
+    if ( span_tr[0] > 0.):
         span = span_tr[plabel]
 
     indices = []
@@ -260,7 +236,7 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
     flux_other_planets = np.ones(shape=len(flux_model_res))
     for p in range(nplanets):
         if (p != plabel):
-            # fd_ub_total stores the flux of a star for each independent
+            # flux_other_planets stores the flux of a star for each independent
             newtrlab = [0]*len(local_time)
             flux_other_planets = flux_other_planets * pti.flux_tr(local_time, newtrlab, pars_tr[p], rp_val[p*nradius+bandlab*control],
                                                     my_ldc[bandlab*2:bandlab*2+2], n_cad[bandlab], t_cad[bandlab], nradius=1)
