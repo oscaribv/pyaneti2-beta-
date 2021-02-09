@@ -24,36 +24,36 @@ def create_folded_tr_plots():
 
             tr_vector = [None]*nbands
 
-            for m in range(0, nbands):
-                localx = []
-                localy = []
-                locale = []
-                localt = []
-                for n in range(0, len(megax)):
-                    if (trlab[n] == m):
-                        localx.append(megax[n])
-                        localy.append(megay[n])
-                        locale.append(megae[n])
-                        localt.append(0)
+
+            for m in range(nbands):
+
+                #compute the models only for the current label
+                indices = m == np.asarray(trlab)
+                localx = megax[indices]
+                localy = megay[indices]
+                locale = megae[indices]
+                localt = np.zeros(len(localx),dtype=int)
+
+
                 try:
                     tr_vector[m] = create_tr_vector(
                         localx, localy, locale, localt, pars_tr, rp_val, o, m)
                 except:
-                    tr_vector[m] = np.array([0.]),np.array([1.]),np.array([1e-6]),np.array([0.]),np.array([1.]),np.array([1.]),np.array([0.]),np.array([1.])
+                    tr_vector[m] = np.array([0.]),np.array([1.]),np.array([1e-6]), \
+                                    np.array([0.]),np.array([1.]),np.array([1.]), \
+                                    np.array([0.]),np.array([1.])
 
-            transpose_tr = np.asarray(tr_vector)
+            transpose_tr = np.asarray(tr_vector,dtype=object)
             transpose_tr = transpose_tr.transpose()
             fancy_tr_plot(transpose_tr, o)
 
 
-# Ntransit is the number of the transit that we want to plot
-# tr_vector contains:
-# xtime,yflux,eflux,xmodel,xmodel_res,fd_ub,res_res,fd_ub_unbinned
 # these lists contains all the information for a given label
 def fancy_tr_plot(tr_vector, pnumber):
 
     fname = outdir+'/'+star+plabels[pnumber]+'_tr.pdf'
     print('Creating ', fname)
+
     # Do the plot
     tfc = 24.  # time factor conversion to hours
     local_T0 = 0.
@@ -218,14 +218,15 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
     else:
         span = span_tr[plabel]
 
-    span = 2*tt
-
     indices = []
     phase = abs(((time-T0)%P)/P)
     phase[phase>0.5] -= 1
     indices = abs(phase) <= span/P
 
-    local_time = phase[indices]*P*24.0
+    #Let us use only data that appears close to the transits
+    #Local time is useful to compute the transits of other planets in the light curve
+    local_time = time[indices]
+    #xtime, yflux, and e flux contain the phase, flux and e flux of the data
     xtime = phase[indices]*P
     yflux = flujo[indices]
     eflux = eflujo[indices]
@@ -241,39 +242,35 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
         control = 0
     # The model has T0 = 0
     dumtp = pti.find_tp(0.0, e_val[plabel], w_val[plabel], P_val[plabel])
-    dparstr = np.concatenate([[dumtp], pars_tr[plabel][1:]])
-    #fd_ub = pti.flux_tr(xmodel,dparstr,my_ldc,n_cad,t_cad)
-    fd_ub = pti.flux_tr(xmodel, newtrlab, dparstr, rp_val[plabel*nradius+bandlab*control],
+    tr_p = np.concatenate([[dumtp], pars_tr[plabel][1:]])
+    flux_model = pti.flux_tr(xmodel, newtrlab, tr_p, rp_val[plabel*nradius+bandlab*control],
                         my_ldc[bandlab*2:bandlab*2+2], n_cad[bandlab], t_cad[bandlab], nradius=1)
     # Let us create an unbinned model plot
-    #fd_ub_unbinned = pti.flux_tr(xmodel,dparstr,my_ldc,1,t_cad)
-    fd_ub_unbinned = pti.flux_tr(
-        xmodel, newtrlab, dparstr, rp_val[plabel*nradius+bandlab*control], my_ldc[bandlab*2:bandlab*2+2], [1], t_cad[bandlab], nradius=1)
+    flux_model_unbinned = pti.flux_tr(
+        xmodel, newtrlab, tr_p, rp_val[plabel*nradius+bandlab*control], my_ldc[bandlab*2:bandlab*2+2], [1], t_cad[bandlab], nradius=1)
     # Calculate the flux to copute the residuals
     newtrlab = [0]*len(xmodel_res)
-    fd_ub_res = pti.flux_tr(xmodel_res, newtrlab, dparstr, rp_val[plabel*nradius+bandlab*control],
+    flux_model_res = pti.flux_tr(xmodel_res, newtrlab, tr_p, rp_val[plabel*nradius+bandlab*control],
                             my_ldc[bandlab*2:bandlab*2+2], n_cad[bandlab], t_cad[bandlab], nradius=1)
 
-    # Define a vector which will contain the data of other planers for multi fits
-    fd_ub_total = np.zeros(shape=len(fd_ub_res))
 
    #############################################################################
    # Let us calculate the flux caused by the other planets
+    # Define a vector which will contain the data of other planers for multi fits
+    flux_other_planets = np.ones(shape=len(flux_model_res))
     for p in range(nplanets):
         if (p != plabel):
             # fd_ub_total stores the flux of a star for each independent
-            #fd_ub_total = fd_ub_total + pti.flux_tr(local_time,pars_tr[:,p],my_ldc,n_cad,t_cad)
             newtrlab = [0]*len(local_time)
-            fd_ub_total = fd_ub_total + pti.flux_tr(local_time, newtrlab, pars_tr[p], rp_val[p*nradius+bandlab*control],
+            flux_other_planets = flux_other_planets * pti.flux_tr(local_time, newtrlab, pars_tr[p], rp_val[p*nradius+bandlab*control],
                                                     my_ldc[bandlab*2:bandlab*2+2], n_cad[bandlab], t_cad[bandlab], nradius=1)
 
     # Remove extra planets from the data
-    yflux_local = yflux - fd_ub_total
-    yflux_local = yflux_local - 1 + nplanets
+    yflux_local = yflux / flux_other_planets
     # The flux has been corrected for the other planets
 
     # Get the residuals
-    res_res = yflux_local - fd_ub_res
+    res_res = yflux_local - flux_model_res
     # are we plotting a GP together with the RV curve
     if kernel_tr[0:2] != 'No':
         xvec = local_time
@@ -284,7 +281,7 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
         yflux_local = yflux_local - m
         res_res = res_res - m
 
-    return xtime, yflux_local, eflux, xmodel, xmodel_res, fd_ub, res_res, fd_ub_unbinned
+    return xtime, yflux_local, eflux, xmodel, xmodel_res, flux_model, res_res, flux_model_unbinned
 
 # ===========================================================
 #              plot all transits
@@ -357,7 +354,9 @@ def plot_lightcurve_timeseries():
         mcolors = ['r', 'b', 'k']
         malpha = [0.7, 0.7, 0.9]
     else:
-        tr_mvec = np.asarray([xmodel, ymodel])
+        tr_mvec = np.zeros(shape=(2,len(xmodel)))
+        tr_mvec[0] = xmodel
+        tr_mvec[1] = ymodel
         model_labels = ['Planetary signal']
         mcolors = ['k']
         malpha = [1.]
@@ -373,7 +372,7 @@ def plot_lightcurve_timeseries():
     #new_err = np.std(new_res_flux,ddof=1)
 
     #data vector
-    tr_dvec_file = np.asarray([megax, megay, megae, trres, trlab])
+    tr_dvec_file = np.asarray([megax, megay, megae, trres, trlab],dtype=object)
 
     # save the data
     header_1 = 'Time  Flux_model'
@@ -386,7 +385,7 @@ def plot_lightcurve_timeseries():
 
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
-    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab])
+    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab],dtype=object)
     plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
