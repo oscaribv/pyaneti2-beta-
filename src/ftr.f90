@@ -70,8 +70,10 @@ implicit none
   real(kind=mireal), intent(in), dimension (0:2*nbands-1) :: ldc
   real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out !output flux model
 
-  if (nradius == 1) then
-    call flux_tr_single(xd,pars,rps,ldc,n_cad(0),t_cad(0),n_data,npl,flux_out)
+  !If we are fitting only one band, let's call the routine that computes it faster
+  if ( nbands == 1 ) then
+    call flux_tr_singleband(xd,pars,rps,ldc,n_cad(0),t_cad(0),n_data,npl,flux_out)
+  !Let's  call the complicated multiband function
   else
     call flux_tr_multiband(xd,trlab,pars,rps,ldc,n_cad,t_cad,nbands,nradius,n_data,npl,flux_out)
   end if
@@ -96,12 +98,12 @@ implicit none
   real(kind=mireal), intent(in), dimension (0:2*nbands-1) :: ldc
   real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out !output flux model
 !Local variables
-  real(kind=mireal), dimension(0:n_data-1) :: flux_per_planet
   real(kind=mireal), dimension(0:n_data-1) :: mu
   real(kind=mireal) :: npl_dbl, u1(0:nbands-1), u2(0:nbands-1)
-  real(kind=mireal), allocatable, dimension(:,:)  :: flux_ub
-  real(kind=mireal), allocatable, dimension(:)  :: xd_ub, z, fmultip
-  integer :: n, j, control
+  real(kind=mireal), allocatable, dimension(:)  :: flux_unbinned
+  real(kind=mireal)   :: flux_binned
+  real(kind=mireal), allocatable, dimension(:)  :: t_unbinned, z
+  integer :: i, n, j, control, lj
   integer, allocatable :: k(:)
 
   !This flag controls the multi-radius fits
@@ -116,66 +118,66 @@ implicit none
     u2(n) = ldc(2*n+1)
   end do
 
+  flux_out = 1.d0
 
-  flux_per_planet(:) = 0.d0
-  do j = 0, n_data - 1
+  do n = 0, npl - 1
 
-   allocate (flux_ub(0:n_cad(trlab(j))-1,0:npl-1))
-   allocate (xd_ub(0:n_cad(trlab(j))-1),z(0:n_cad(trlab(j))-1),fmultip(0:n_cad(trlab(j))-1))
-   allocate (k(0:n_cad(trlab(j))-1))
+    do j = 0, n_data - 1
 
-    k(:) = (/(n, n=0,n_cad(trlab(j))-1, 1)/)
+      !Let us allocate memory in a smart way
+      !If the previous point was the same telescope label, then the arrays have
+      !the same dimensions, and we no need to allocate new memory
+      if ( j < 1 .or. (j > 0 .and. (trlab(j-1) .ne. trlab(j) ) ) ) then !then we need to allocate
 
-    !Calculate the time-stamps for the binned model
-    xd_ub(:) = xd(j) + t_cad(trlab(j))*((k(:)+1.d0)-0.5d0*(n_cad(trlab(j))+1.d0))/n_cad(trlab(j))
+        allocate (flux_unbinned(0:n_cad(trlab(j))-1))
+        allocate (t_unbinned(0:n_cad(trlab(j))-1),z(0:n_cad(trlab(j))-1))
+        allocate (k(0:n_cad(trlab(j))-1))
 
-    !control the label of the planet
-    do n = 0, npl - 1
+      end if
+
+      !variable with the current telescope label
+      lj = trlab(j)
+
+      k(:) = (/(i, i=0,n_cad(lj)-1, 1)/)
+
+      !Calculate the time-stamps for the binned model
+      t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cad(lj)+1.d0))/n_cad(lj)
 
       !Each z is independent for each planet
-      call find_z(xd_ub,pars(0:5,n),z,n_cad(trlab(j)))
+      call find_z(t_unbinned,pars(0:5,n),z,n_cad(lj))
 
+      if ( ALL( z > 1.d0 + rps(n*nradius+lj*control) ) .or. rps(n*nradius+lj*control) < small ) then
 
-
-      if ( ALL( z > 1.d0 + rps(n*nradius+trlab(j)*control) ) .or. rps(n*nradius+trlab(j)*control) < small ) then
-
-
-        flux_per_planet(j) = flux_per_planet(j) + 1.d0 !This is not eclipse
-        flux_ub(:,n) = 0.d0
+        flux_out(j) = flux_out(j) * 1.d0
 
       else
 
         !Now we have z, let us use Agol's routines
-        call occultquad(z,u1(trlab(j)),u2(trlab(j)),rps(n*nradius+trlab(j)*control),flux_ub(:,n),mu,n_cad(trlab(j)))
+        call occultquad(z,u1(lj),u2(lj),rps(n*nradius+lj*control),flux_unbinned,mu,n_cad(lj))
         !!!!!call qpower2(z,rp(n),u1,u2,flux_ub(:,n),n_cad)
+
+        !Bin the model if needed
+        flux_binned = SUM(flux_unbinned)/n_cad(lj)
+
+	!Compute the final flux
+        flux_out(j) = flux_out(j) * flux_binned
 
       end if
 
-    end do !planets
+      !The memory is deallocated only if the upcoming point is a new telescope label
+      !or if we have reached the number of iterations
+      if ( lj .ne. trlab(j+1) .or. j + 1 == n_data ) deallocate(flux_unbinned,t_unbinned,z,k)
 
-    fmultip(:) = 0.0
-    !Sum the flux of all each sub-division of the model due to each planet
-    do n = 0, n_cad(trlab(j)) - 1
-      fmultip(n) =  SUM(flux_ub(n,:))
     end do
 
-    !Re-bin the model
-    flux_per_planet(j) = flux_per_planet(j) +  sum(fmultip) / n_cad(trlab(j))
+  end do
 
-    !Calcualte the flux received taking into account the transit of all planets
-    flux_out(j) =  1.0d0 + flux_per_planet(j) - npl_dbl
-
-    !Restart flux_ub
-    flux_ub(:,:) = 0.0
-
-    deallocate(flux_ub,xd_ub,z,fmultip,k)
-
-  end do !n_data
 
 end subroutine
 
+
 !Flux for a single band fit
-subroutine flux_tr_single(xd,pars,rps,ldc,&
+subroutine flux_tr_singleband(xd,pars,rps,ldc,&
            n_cad,t_cad,n_data,npl,flux_out)
 use constants
 implicit none
@@ -190,12 +192,10 @@ implicit none
   real(kind=mireal), intent(in), dimension (0:1) :: ldc
   real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out
 !Local variables
-  real(kind=mireal), dimension(0:n_data-1) :: flux_per_planet
-  real(kind=mireal), dimension(0:n_data-1) :: mu
+  real(kind=mireal), dimension(0:n_cad-1)  :: flux_unbinned, t_unbinned, z, mu
   real(kind=mireal) :: npl_dbl, u1, u2
-  real(kind=mireal), dimension(0:n_cad-1,0:npl-1)  :: flux_ub
-  real(kind=mireal), dimension(0:n_cad-1)  :: xd_ub, z, fmultip
-  integer :: n, j, k(0:n_cad-1)
+  real(kind=mireal)   :: flux_binned
+  integer :: n, i, j, k(0:n_cad-1)
 !External function
   external :: occultquad, find_z
 
@@ -204,53 +204,47 @@ implicit none
   u1 = ldc(0)
   u2 = ldc(1)
 
+  !Create the jumps
+  k(:) = (/(i, i=0,n_cad-1, 1)/)
 
-  k(:) = (/(n, n=0,n_cad-1, 1)/)
+  !This variable will contain the flux with all the planetary transits
+  flux_out = 1.d0
 
-  flux_per_planet(:) = 0.d0
-  flux_ub(:,:) = 0.d0
-  do j = 0, n_data - 1
+  !Let's do the planets one by one
+  do n = 0, npl - 1
 
-    !Calculate the time-stamps for the binned model
-    xd_ub(:) = xd(j) + t_cad*((k(:)+1.d0)-0.5d0*(n_cad+1.d0))/n_cad
+    !Let's compute the planet model for the planet n
+    do j = 0, n_data - 1
 
-    !control the label of the planet
-    do n = 0, npl - 1
-
+      !Calculate the time-stamps for the binned model
+      t_unbinned(:) = xd(j) + t_cad*((k(:)+1.d0)-0.5d0*(n_cad+1.d0))/n_cad
       !Each z is independent for each planet
-      call find_z(xd_ub,pars(0:5,n),z,n_cad)
+      call find_z(t_unbinned,pars(0:5,n),z,n_cad)
 
+      !If there is no eclipse then let's avoid call the transit model routines
       if ( ALL( z > 1.d0 + rps(n) ) .or. rps(n) < small ) then
 
-        flux_per_planet(j) = flux_per_planet(j) + 1.d0 !This is not eclipse
-        flux_ub(:,n) = 0.d0
+	!There is no transit, so no modification to the flux
+        flux_out(j) = flux_out(j) * 1.d0
 
       else
 
         !Now we have z, let us use Agol's routines
-        call occultquad(z,u1,u2,rps(n),flux_ub(:,n),mu,n_cad)
+        call occultquad(z,u1,u2,rps(n),flux_unbinned,mu,n_cad)
         !call qpower2(z,rps(n),u1,u2,flux_ub(:,n),n_cad)
+
+        !Bin the model if needed
+        flux_binned = SUM(flux_unbinned)/n_cad
+
+	!Compute the final flux
+        flux_out(j) = flux_out(j) * flux_binned
 
       end if
 
-    end do !planets
-
-    fmultip(:) = 0.0
-    !Sum the flux of all each sub-division of the model due to each planet
-    do n = 0, n_cad - 1
-      fmultip(n) =  SUM(flux_ub(n,:))
     end do
+    !Now all the model of planet n has been computed
 
-    !Re-bin the model
-    flux_per_planet(j) = flux_per_planet(j) +  sum(fmultip) / n_cad
-
-    !Calcualte the flux received taking into account the transit of all planets
-    flux_out(j) =  1.0d0 + flux_per_planet(j) - npl_dbl
-
-    !Restart flux_ub
-    flux_ub(:,:) = 0.0
-
-  end do !n_data
+  end do
 
 end subroutine
 
