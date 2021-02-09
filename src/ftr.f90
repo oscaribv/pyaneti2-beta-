@@ -103,7 +103,7 @@ implicit none
   real(kind=mireal), allocatable, dimension(:)  :: flux_unbinned
   real(kind=mireal)   :: flux_binned
   real(kind=mireal), allocatable, dimension(:)  :: t_unbinned, z
-  integer :: i, n, j, control, lj
+  integer :: i, n, j, control, lj, n_cadj
   integer, allocatable :: k(:)
 
   !This flag controls the multi-radius fits
@@ -124,27 +124,30 @@ implicit none
 
     do j = 0, n_data - 1
 
-      !Let us allocate memory in a smart way
-      !If the previous point was the same telescope label, then the arrays have
-      !the same dimensions, and we no need to allocate new memory
-      if ( j < 1 .or. (j > 0 .and. (trlab(j-1) .ne. trlab(j) ) ) ) then !then we need to allocate
-
-        allocate (flux_unbinned(0:n_cad(trlab(j))-1))
-        allocate (t_unbinned(0:n_cad(trlab(j))-1),z(0:n_cad(trlab(j))-1))
-        allocate (k(0:n_cad(trlab(j))-1))
-
-      end if
 
       !variable with the current telescope label
       lj = trlab(j)
+      n_cadj = n_cad(lj)
 
-      k(:) = (/(i, i=0,n_cad(lj)-1, 1)/)
+      !Let us allocate memory in a smart way
+      !If the previous point was the same telescope label, then the arrays have
+      !the same dimensions, and we no need to allocate new memory
+      if ( j < 1 .or. (j > 0 .and. (trlab(j-1) .ne. lj ) ) ) then !we need to allocate
+
+        allocate (flux_unbinned(0:n_cadj-1))
+        allocate (t_unbinned(0:n_cadj-1),z(0:n_cadj-1))
+        allocate (k(0:n_cadj-1))
+
+      end if
+
+
+      k(:) = (/(i, i=0,n_cadj-1, 1)/)
 
       !Calculate the time-stamps for the binned model
-      t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cad(lj)+1.d0))/n_cad(lj)
+      t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cadj+1.d0))/n_cadj
 
       !Each z is independent for each planet
-      call find_z(t_unbinned,pars(0:5,n),z,n_cad(lj))
+      call find_z(t_unbinned,pars(0:5,n),z,n_cadj)
 
       if ( ALL( z > 1.d0 + rps(n*nradius+lj*control) ) .or. rps(n*nradius+lj*control) < small ) then
 
@@ -153,11 +156,11 @@ implicit none
       else
 
         !Now we have z, let us use Agol's routines
-        call occultquad(z,u1(lj),u2(lj),rps(n*nradius+lj*control),flux_unbinned,mu,n_cad(lj))
+        call occultquad(z,u1(lj),u2(lj),rps(n*nradius+lj*control),flux_unbinned,mu,n_cadj)
         !!!!!call qpower2(z,rp(n),u1,u2,flux_ub(:,n),n_cad)
 
         !Bin the model if needed
-        flux_binned = SUM(flux_unbinned)/n_cad(lj)
+        flux_binned = SUM(flux_unbinned)/n_cadj
 
 	!Compute the final flux
         flux_out(j) = flux_out(j) * flux_binned
