@@ -124,7 +124,6 @@ implicit none
 
     do j = 0, n_data - 1
 
-
       !variable with the current telescope label
       lj = trlab(j)
       n_cadj = n_cad(lj)
@@ -138,13 +137,11 @@ implicit none
         allocate (t_unbinned(0:n_cadj-1),z(0:n_cadj-1))
         allocate (k(0:n_cadj-1))
 
+	k(:) = (/(i, i=0,n_cadj-1, 1)/)
+        !Calculate the time-stamps for the binned model
+        t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cadj+1.d0))/n_cadj
+
       end if
-
-
-      k(:) = (/(i, i=0,n_cadj-1, 1)/)
-
-      !Calculate the time-stamps for the binned model
-      t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cadj+1.d0))/n_cadj
 
       !Each z is independent for each planet
       call find_z(t_unbinned,pars(0:5,n),z,n_cadj)

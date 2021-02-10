@@ -344,7 +344,7 @@ def good_clustering_fast(chi2, nconv, nwalkers):
     return good_chain, new_nwalkers
 
 
-def good_clustering_likelihood(like, nconv, nwalkers):
+def good_clustering_likelihood(pos, nconv, nwalkers):
     # Let us find the good indixes for the cluster
     # We have n walkers
 
@@ -352,22 +352,26 @@ def good_clustering_likelihood(like, nconv, nwalkers):
     print('Initial number of chains:', nwalkers)
 
     # This variable will have each walker information
-    like_walkers = [None]*nwalkers
-    like_mean = [None]*nwalkers
+    pos_walkers = [None]*nwalkers
+    pos_mean = np.zeros(nwalkers)
     for i in range(0, nwalkers):
-        like_walkers[i] = like[i::nconv]
+        pos_walkers[i] = pos[i::nconv]
 
-      # The mean of each walker
+    # The mean of each walker
     for i in range(0, nwalkers):
-        like_mean[i] = np.mean(like_walkers[i])
+        pos_mean[i] = np.mean(pos_walkers[i])
 
-    # get the minimum chi2
-    total_max = max(like_mean)
+
+    sorted_indices = np.argsort(pos_mean)
 
     good_chain = []
     # Let us kill all the walkers 5 times the minimum
-    for i in range(0, nwalkers):
-        if (like_mean[i] > total_max * 0.99):
+    #for i in range(nwalkers):
+    for m,i in enumerate(sorted_indices):
+        otros = i != sorted_indices
+        #otros[0:m] = False
+        otros_walkers = np.mean(pos_mean[otros]) - np.std(pos_mean[otros])
+        if (pos_mean[i] > otros_walkers):
             # We are saving the good chain labels
             good_chain.append(i)
 
