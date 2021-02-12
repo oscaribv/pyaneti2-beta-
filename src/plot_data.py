@@ -412,7 +412,7 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 plt.tick_params(axis='x', which='both',
                                 direction='in', labelbottom=True,rotation=45,labelsize=8)
             if j == i:
-                plt.hist(params[j],bins=50,density=True,histtype='step')
+                plt.hist(params[j],bins=50,density=True,histtype='step',color='b')
                 #sns.kdeplot(params[j])
                 if is_plot_prior:
                     lx, rx = ax0.get_xlim()
@@ -423,15 +423,16 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 for k in range(0, len(locx)):
                     lp[k] = pti.get_priors(
                             priorf[i], [priorl[i*2], priorl[i*2+1]], locx[k])
-                plt.plot(locx, lp, alpha=0.8, color='g', label='prior, P(M)',lw=3)
+                plt.plot(locx, lp, alpha=0.8, color='#00b300', label='prior, P(M)',lw=1)
                 vpar, lpar, rpar = find_vals_perc(params[i], 1.0)
                 plt.axvline(x=vpar, c='#cc0000')
                 plt.axvline(x=vpar-lpar, c='#cc0000', ls='--')
                 plt.axvline(x=vpar+rpar, c='#cc0000', ls='--')
                 plt.xlim(*limits[o])
             else:
-                z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm())
-                #sns.kdeplot(params[j], params[i])
+                #z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm())
+                sns.kdeplot(params[j], params[i],levels=4,color='k')
+                plt.plot(params[j],params[i],'b.',alpha=0.01,markersize=0.5,color='#007fff')
                 plt.xlim(*limits[p])
                 plt.ylim(*limits[o])
 

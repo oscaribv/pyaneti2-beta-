@@ -133,15 +133,13 @@ implicit none
       !the same dimensions, and we no need to allocate new memory
       if ( j < 1 .or. (j > 0 .and. (trlab(j-1) .ne. lj ) ) ) then !we need to allocate
 
-        allocate (flux_unbinned(0:n_cadj-1))
-        allocate (t_unbinned(0:n_cadj-1),z(0:n_cadj-1))
-        allocate (k(0:n_cadj-1))
-
-	k(:) = (/(i, i=0,n_cadj-1, 1)/)
-        !Calculate the time-stamps for the binned model
-        t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cadj+1.d0))/n_cadj
+        allocate(flux_unbinned(0:n_cadj-1),t_unbinned(0:n_cadj-1),z(0:n_cadj-1),k(0:n_cadj-1))
 
       end if
+
+      k(:) = (/(i, i=0,n_cadj-1, 1)/)
+      !Calculate the time-stamps for the binned model
+      t_unbinned(:) = xd(j) + t_cad(lj)*((k(:)+1.d0)-0.5d0*(n_cadj+1.d0))/n_cadj
 
       !Each z is independent for each planet
       call find_z(t_unbinned,pars(0:5,n),z,n_cadj)
