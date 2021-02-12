@@ -152,6 +152,8 @@ def fancy_tr_plot(tr_vector, pnumber):
             plt.plot((xmodel_res[m]-local_T0)*tfc, res_res[m]*1e6-deltay, 'o',
                      color=local_color, ms=7, marker=mark_tr[m], alpha=0.5)
             if plot_binned_data:
+                tbin = 10./60.
+                xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
                 plt.plot(xbined,rbined-deltay,'o',color=tr_colors[m])
             if (m < nbands - 1):
                 dy = max(res_res[m])-min(res_res[m])
