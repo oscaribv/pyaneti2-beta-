@@ -67,11 +67,6 @@ def fancy_tr_plot(tr_vector, pnumber):
     res_res = tr_vector[6]
     fd_ub_unbinned = tr_vector[7]
 
-
-    if plot_binned_data:
-        for o in range(0, len(tr_colors)):
-            tr_colors[o] = '#C0C0C0'
-
     # Start the plot
     plt.figure(1, figsize=(fsx, fsy+(nbands-1)*0.75*fsy))
     # Plot the transit light curve
@@ -92,21 +87,24 @@ def fancy_tr_plot(tr_vector, pnumber):
             plt.errorbar((xtime[m]-local_T0)*tfc, yflux, errors,
                          color=tr_colors[m], fmt='.', alpha=1.0)
         else:
-            plt.plot((xtime[m]-local_T0)*tfc, yflux[m]-deltay, color=tr_colors[m],
+            local_color = tr_colors[m]
+            if plot_binned_data:
+                local_color = '#C0C0C0'
+            plt.plot((xtime[m]-local_T0)*tfc, yflux[m]-deltay, color=local_color,
                      ms=7, marker=mark_tr[m], alpha=0.75, linewidth=0.)
             plt.plot((xmodel[m]-local_T0)*tfc, fd_ub[m] -
                      deltay, 'k', linewidth=2.0, alpha=1.0)
             plt.errorbar(-x_lim*(0.95), min(yflux[m]-deltay), eflux[m]
-                         [0], color=tr_colors[m], ms=7, fmt=mark_tr[m], alpha=1.0)
+                         [0], color=local_color, ms=7, fmt=mark_tr[m], alpha=1.0)
             plt.annotate(
                 'Error bar '+bands[m], xy=(-x_lim*(0.70), min(yflux[m]-deltay)), fontsize=fos*0.7)
+            if plot_binned_data:
+                tbin = 10./60.
+                xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
+                plt.plot(xbined, fbined-deltay, 'o',color=tr_colors[m])
             if (m < nbands - 1):
                 dy = max(yflux[m+1])-min(yflux[m+1])
             deltay = deltay + dy
-            if plot_binned_data:
-                tbin = 10./60.
-                xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m],tbin)
-                plt.plot(xbined, fbined, 'ro')
 
         # save the data
         model_matrxi = np.asarray([(xmodel[m]-local_T0)*tfc, fd_ub[m]])
@@ -141,22 +139,31 @@ def fancy_tr_plot(tr_vector, pnumber):
     # ------------------------------------------------------------
     ax0 = plt.subplot(gs[1],rasterized=is_rasterized)
     plt.tick_params(labelsize=fos, direction='in')
+    deltay = 0.
+    dy = 0.
     for m in range(nbands):
         if (plot_tr_errorbars):
             plt.errorbar((xmodel_res[m]-local_T0)*tfc, res_res[m]
                          * 1e6, eflux[m]*1e6, fmt='.', alpha=0.5)
         else:
-            plt.plot((xmodel_res[m]-local_T0)*tfc, res_res[m]*1e6, 'o',
-                     color=tr_colors[m], ms=7, marker=mark_tr[m], alpha=0.5)
-    plt.plot([x_lim, -x_lim], [0.0, 0.0], 'k--', linewidth=1.0, alpha=1.0)
+            local_color = tr_colors[m]
+            if plot_binned_data:
+                local_color = '#C0C0C0'
+            plt.plot((xmodel_res[m]-local_T0)*tfc, res_res[m]*1e6-deltay, 'o',
+                     color=local_color, ms=7, marker=mark_tr[m], alpha=0.5)
+            if plot_binned_data:
+                plt.plot(xbined,rbined-deltay,'o',color=tr_colors[m])
+            if (m < nbands - 1):
+                dy = max(res_res[m])-min(res_res[m])
+                dy = dy*1e6
+            deltay = deltay + dy
+    #plt.plot([x_lim, -x_lim], [0.0, 0.0], 'k--', linewidth=1.0, alpha=1.0)
     plt.xticks(np.arange(-mxv, mxv+step_plot, step_plot))
     plt.xlim(x_lim, -x_lim)
     yylims = ax0.get_ylim()
     miy = (max(abs(yylims[0]), abs(yylims[1])))
-    plt.yticks(np.arange(-miy, miy, miy/2.))
-    plt.ylim(-miy, miy*1.25)
-    if plot_binned_data:
-        plt.plot(xbined, rbined*1e6, 'ro')
+    plt.yticks(range(-int(miy), int(miy), int(miy/2.)))
+    #plt.ylim(-miy, miy)
     # Calcualte the rms
     if (is_plot_std_tr):
         trsigma = np.std(res_res*1e6, ddof=1)
@@ -327,6 +334,7 @@ def plot_lightcurve_timeseries():
                            evec, xmodel, jtr, jtrlab)
         tr_mvec = [xmodel, ymodel, 1.+m, (ymodel+m)]
         model_labels = ['Planetary signal', 'GP', 'P+GP']
+        tr_mvec = np.array(tr_mvec)
         mcolors = ['r', 'b', 'k']
         malpha = [0.7, 0.7, 0.9]
     else:
@@ -337,24 +345,22 @@ def plot_lightcurve_timeseries():
         mcolors = ['k']
         malpha = [1.]
 
-    # Call the sigma clipping functions
-    #new_t, new_f = sigma_clip(megax,megay,trres,limit_sigma=sigma)
 
-    # Recalculate the error bars
-    #new_model_flux = pti.flux_tr(new_t,trlab,pars_tr,rps,my_ldc,n_cad,t_cad)
-    # New residuals
-    #new_res_flux = new_f - new_model_flux
-    # Recompute the error bars from the std of the residuals
-    #new_err = np.std(new_res_flux,ddof=1)
+    indices = abs(trres) < ( np.mean(trres) + 5*np.std(trres) )
+    x_c = megax[indices]
+    y_c = megay[indices]
+    e_c = megae[indices]
+    r_c = trres[indices]
+    local_trlab = np.asarray(trlab)
+    t_c = local_trlab[indices]
 
-    #data vector
-    tr_dvec_file = np.asarray([megax, megay, megae, trres, trlab],dtype=object)
+    tr_dvec_file = np.asarray([x_c, y_c, e_c, r_c, t_c],dtype=object)
 
     # save the data
     header_1 = 'Time  Flux_model'
     np.savetxt(
-        outdir+'/'+star+'-trmodel_lightcurve.txt',tr_mvec.T,header=header_1,fmt='%1.7e %1.7e')
-    header_2 = 'Time  Flux eFlux residuals telescope_label'
+        outdir+'/'+star+'-trmodel_lightcurve.txt',tr_mvec.T,header=header_1,fmt='%1.7e')
+    header_2 = 'This light curve has been cleaned with a 5-sigma clipling \n Time  Flux eFlux residuals telescope_label'
     np.savetxt(
          outdir+'/'+star+'-trdata_lightcurve.txt',tr_dvec_file.T,header=header_2,fmt='%1.7e %1.7e %1.7e %1.7e %i')
 

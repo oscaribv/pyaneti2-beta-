@@ -105,42 +105,6 @@ def get_teq(Tstar, albedo, rstar, a):
     Tp = (rstar/2.0/a)**(0.5) * Tp
     return Tp
 
-# Sigma clipping functions copied from exotrending
-# x and y are the original arrays, z is the vector with the residuals
-
-
-def sigma_clip(x, y, z, limit_sigma=5, is_plot=False):
-    control = True
-    new_y = list(y)
-    new_x = list(x)
-    new_z = list(z)
-    dummy_x = []
-    dummy_y = []
-    dummy_z = []
-    n = 1
-    while (control):
-        sigma = np.std(new_z)
-        for i in range(0, len(new_z)):
-            if (np.abs(new_z[i]) < limit_sigma*sigma):
-                dummy_x.append(new_x[i])
-                dummy_y.append(new_y[i])
-                dummy_z.append(new_z[i])
-        if (len(dummy_x) == len(new_x)):  # We did not cut, so the sigma clipping is done
-            control = False
-        new_y = list(dummy_y)
-        new_x = list(dummy_x)
-        new_z = list(dummy_z)
-        dummy_x = []
-        dummy_y = []
-        dummy_z = []
-        n = n + 1
-
-    if (is_plot):
-        plt.plot(x, y, 'or', new_x, new_y, 'ob')
-        plt.show()
-
-    return new_x, new_y
-
 # -----------------------------------------------------------
 #  Smart priors, get the best values of the physical and
 #  priors limits
@@ -366,14 +330,15 @@ def good_clustering_likelihood(pos, nconv, nwalkers):
 
     good_chain = []
     # Let us kill all the walkers 5 times the minimum
-    #for i in range(nwalkers):
     for m,i in enumerate(sorted_indices):
         otros = i != sorted_indices
-        #otros[0:m] = False
-        otros_walkers = np.mean(pos_mean[otros]) - np.std(pos_mean[otros])
+        otros[0:m] = False
+        otros_walkers = np.mean(pos_mean[otros]) - 3*np.std(pos_mean[otros])
         if (pos_mean[i] > otros_walkers):
             # We are saving the good chain labels
             good_chain.append(i)
+        else:
+            print("removing chain {}, iteration {}".format(i,m))
 
     new_nwalkers = len(good_chain)
 
@@ -421,9 +386,6 @@ def bin_data(tvector, fvector, rvector, tbin):
     xbined = []
     fbined = []
     rbined = []
-    # Normalise the vectors
-    rvector = rvector/np.mean(fvector)
-    fvector = fvector/np.mean(fvector)
     while (leftt < max(tvector)):
         fdummy = []
         rdummy = []

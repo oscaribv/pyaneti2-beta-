@@ -175,7 +175,7 @@ def plot_rv_timeseries():
     # Create residuals file
     of = open(out_f, 'w')
     for i in range(0, len(vec_x)):
-        of.write(' %8.8f   %8.8f  %8.8f  %s \n' % (vec_x[i], res[i], vec_z[i], telescopes_labels[tlab[i]]))
+        of.write(' %8.8f   %8.8f  %8.8f  %s \n' % (vec_x[i], res[i]*1e-3, vec_z[i], telescopes_labels[tlab[i]]))
 
     of.close()
 
