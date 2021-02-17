@@ -70,12 +70,23 @@ implicit none
   real(kind=mireal), intent(in), dimension (0:2*nbands-1) :: ldc
   real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out !output flux model
 
-  !If we are fitting only one band, let's call the routine that computes it faster
-  if ( nbands == 1 ) then
-    call flux_tr_singleband(xd,pars,rps,ldc,n_cad(0),t_cad(0),n_data,npl,flux_out)
-  !Let's  call the complicated multiband function
-  else
-    call flux_tr_multiband(xd,trlab,pars,rps,ldc,n_cad,t_cad,nbands,nradius,n_data,npl,flux_out)
+  !If any band requieres binning, let us call the routines with binning
+  if ( any(n_cad > 1) ) then
+    !If we are fitting only one band, let's call the routine that computes it faster
+    if ( nbands == 1 ) then
+      call flux_tr_singleband(xd,pars,rps,ldc,n_cad(0),t_cad(0),n_data,npl,flux_out)
+    !Let's  call the complicated multiband function
+    else
+      call flux_tr_multiband(xd,trlab,pars,rps,ldc,n_cad,t_cad,nbands,nradius,n_data,npl,flux_out)
+    end if
+  else !We no need binning and things can be faster!
+      !If we are fitting only one band, let's call the routine that computes it faster
+    if ( nbands == 1 ) then
+      call flux_tr_singleband_nobin(xd,pars,rps,ldc,n_data,npl,flux_out)
+    !Let's  call the complicated multiband function
+    else
+      call flux_tr_multiband_nobin(xd,trlab,pars,rps,ldc,nbands,nradius,n_data,npl,flux_out)
+    end if
   end if
 
 end subroutine
@@ -174,6 +185,67 @@ implicit none
 end subroutine
 
 
+!This subroutine computes the flux of a star with transiting planets for different bands
+!assuming that not a single band requieres binning
+subroutine flux_tr_multiband_nobin(xd,trlab,pars,rps,ldc,&
+           nbands,nradius,n_data,npl,flux_out)
+use constants
+implicit none
+
+!In/Out variables
+  integer, intent(in) :: n_data, npl, nbands, nradius
+  real(kind=mireal), intent(in), dimension(0:n_data-1)  :: xd
+  integer, intent(in), dimension(0:n_data-1)  :: trlab !this indicates the instrument label
+  real(kind=mireal), intent(in), dimension(0:5,0:npl-1) :: pars
+  real(kind=mireal), intent(in), dimension(0:nradius*npl-1) :: rps
+!  real(kind=mireal), intent(in), dimension(0:nbands-1,0:npl-1) :: rps
+  !pars = T0, P, e, w, b, a/R*, Rp/R*
+  real(kind=mireal), intent(in), dimension (0:2*nbands-1) :: ldc
+  real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out !output flux model
+!Local variables
+  real(kind=mireal) :: npl_dbl, u1(0:nbands-1), u2(0:nbands-1)
+  real(kind=mireal) :: flux_model
+  real(kind=mireal) :: mu, z(1)
+  integer :: n, j, control, lj
+
+  !This flag controls the multi-radius fits
+  control = 1
+  if (nradius == 1) control = 0
+
+  npl_dbl = dble(npl)
+
+
+  do n = 0, nbands - 1
+    u1(n) = ldc(2*n)
+    u2(n) = ldc(2*n+1)
+  end do
+
+  flux_out = 1.d0
+
+  do n = 0, npl - 1
+
+    do j = 0, n_data - 1
+
+      !variable with the current telescope label
+      lj = trlab(j)
+
+      !Each z is independent for each planet
+      call find_z(xd(j),pars(0:5,n),z,1)
+
+      !Now we have z, let us use Agol's routines
+      call occultquad(z,u1(lj),u2(lj),rps(n*nradius+lj*control),flux_model,mu,1)
+      !!!!!call qpower2(z,rp(n),u1,u2,flux_ub(:,n),n_cad)
+
+      !Compute the final flux
+      flux_out(j) = flux_out(j) * flux_model
+
+    end do
+
+  end do
+
+
+end subroutine
+
 !Flux for a single band fit
 subroutine flux_tr_singleband(xd,pars,rps,ldc,&
            n_cad,t_cad,n_data,npl,flux_out)
@@ -241,6 +313,54 @@ implicit none
 
     end do
     !Now all the model of planet n has been computed
+
+  end do
+
+end subroutine
+
+
+!Flux for a single band fit, when no binning in needed
+subroutine flux_tr_singleband_nobin(xd,pars,rps,ldc,n_data,npl,flux_out)
+use constants
+implicit none
+
+!In/Out variables
+  integer, intent(in) :: n_data, npl
+  real(kind=mireal), intent(in), dimension(0:n_data-1)  :: xd
+  real(kind=mireal), intent(in), dimension(0:5,0:npl-1) :: pars
+  real(kind=mireal), intent(in), dimension(0:npl-1) :: rps
+  !pars = T0, P, e, w, b, a/R*, Rp/R*
+  real(kind=mireal), intent(in), dimension (0:1) :: ldc
+  real(kind=mireal), intent(out), dimension(0:n_data-1) :: flux_out
+!Local variables
+  real(kind=mireal), dimension(0:n_data-1) :: flux_model, z, mu
+  real(kind=mireal) :: npl_dbl, u1, u2
+  integer :: n
+!External function
+  external :: occultquad, find_z
+
+  npl_dbl = dble(npl)
+
+  u1 = ldc(0)
+  u2 = ldc(1)
+
+  !This variable will contain the flux with all the planetary transits
+  flux_out = 1.d0
+
+  !Let's do the planets one by one
+  do n = 0, npl - 1
+
+      !Each z is independent for each planet
+      call find_z(xd,pars(0:5,n),z,n_data)
+
+      !Now we have z, let us use Agol's routines
+      call occultquad(z,u1,u2,rps(n),flux_model,mu,n_data)
+      !call qpower2(z,rps(n),u1,u2,flux_ub(:,n),n_cad)
+
+      !Compute the final flux
+      flux_out = flux_out * flux_model
+
+      !Now all the model of planet n has been computed
 
   end do
 
