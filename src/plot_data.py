@@ -430,9 +430,9 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 plt.axvline(x=vpar+rpar, c='#cc0000', ls='--')
                 plt.xlim(*limits[o])
             else:
-                #z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm())
-                sns.kdeplot(params[j], params[i],levels=4,color='k')
-                plt.plot(params[j],params[i],'b.',alpha=0.01,markersize=0.5,color='#007fff')
+                z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm())
+                #sns.kdeplot(params[j], params[i],levels=4,color='k')
+                #plt.plot(params[j],params[i],'b.',alpha=0.01,markersize=0.5,color='#007fff')
                 plt.xlim(*limits[p])
                 plt.ylim(*limits[o])
 
