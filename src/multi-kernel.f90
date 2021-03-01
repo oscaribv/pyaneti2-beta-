@@ -8,32 +8,40 @@ subroutine get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,
   real(kind=mireal), intent(in) ::  pars(0:npars-1)
   real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
   !
-  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, phi, sinphi
-  real(kind=mireal) :: le, lp, P
+  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, tau, sintau, alpha, beta
+  real(kind=mireal) :: le, lp, P, le2, lp2, P2
 
   le = pars(0)
   lp = pars(1)
   P  = pars(2)
 
+  le2 = le*le
+  lp2 = lp*lp
+  P2  = P*P
+
   call fcdist(x1,x2,titj,nx1,nx2)
 
-  phi = 2.*pi*titj/P
+  tau = 2.*pi*titj/P
 
-  sinphi = sin(phi)
+  sintau = sin(tau)
 
-  gamma_g_g = - (sin(phi/2.))**2/2./lp**2 - titj**2/2./le**2
+  alpha = pi*sintau/(2.*P*lp2)
+
+  beta = titj/le2
+
+  gamma_g_g = - (sin(tau/2.))**2/2./lp2 - titj*titj/2./le2
   gamma_g_g = exp(gamma_g_g)
 
-  gamma_g_dg = - pi*sinphi/(2.*P*lp**2) - titj/le**2
-  gamma_g_dg = gamma_g_g * gamma_g_dg
+  gamma_g_dg = - gamma_g_g * (alpha + beta)
+  !gamma_g_dg = gamma_g_g * gamma_g_dg
 
   gamma_dg_g = - gamma_g_dg
 
-  gamma_dg_dg = - pi**2*sinphi**2/(4.*P**2*lp**4) &
-                + pi**2*cos(phi)/P**2/lp**2         &
-                - phi*sinphi/(2.*lp**2*le**2)     &
-                - titj**2/le**4                     &
-                + 1./le**2
+  gamma_dg_dg = - alpha*alpha &
+                + pi*pi*cos(tau)/P2/lp2         &
+                - tau*sintau/(2.*lp2*le2)     &
+                - beta*beta                     &
+                + 1./le2
   gamma_dg_dg = gamma_g_g * gamma_dg_dg
 
 end subroutine get_QP_gammas
@@ -114,84 +122,48 @@ subroutine get_gammas(x1,x2,pars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg
   real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
   !
 
-  if (kernel == 'MQ') then !Quasi-periodic Kernel
+  if (kernel == 'MQ') then !Multi-Quasi-periodic Kernel
         call get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,3)
-  else if (kernel == 'EX') then !Exponential Kernel
+  else if (kernel == 'ME') then !Multi-Exponential Kernel
       call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
-  else if (kernel == 'MF') then !Matern 5/2 Kernel
-      call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
+  else if (kernel == 'MM') then !Multi-Matern 5/2 Kernel
+      call get_M52_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
   end if
 
 end subroutine
 
-!This subroutine computes the multi-dimensional GP framework as it appears in
-!Rajpaul et al., (2015, https://academic.oup.com/mnras/article/452/3/2269/1079217)
-!for a Quasi-Periodic Kernel
-!Note: There is an error in eq. (21) of Rajpaul et al., (2015), corrected here
-subroutine R15MultiKernel(pars,x1,x2,cov,nx1,nx2)
+subroutine MultidimCov(pars,x1,x2,kernel,ndim,cov,nx1,nx2)
   use constants
   implicit none
+
   !
-  integer, intent(in) :: nx1, nx2
-  real(kind=mireal), intent(in) :: pars(0:8) !There are only two parameters for this kernel
-  real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  integer, intent(in) :: nx1, nx2, ndim
+  real(kind=mireal), intent(in) :: pars(0:ndim*2+3-1)
+  real(kind=mireal), intent(in) :: x1(0:nx1-1)
+  real(kind=mireal), intent(in) :: x2(0:nx2-1)
+  character(len=3), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
-  integer, parameter :: m = 3
-  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1) :: gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
-  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1) :: k11, k12, k13
-  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1) :: k21, k22, k23
-  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1) :: k31, k32, k33
-  real(kind=mireal) :: Vc, Vr, Lc, Lr, Bc, Br
-  real(kind=mireal) :: hyperpars(0:2)
 
-  Vc = pars(0); Vr = pars(1); Lc = pars(2); Lr = pars(3); Bc = pars(4); Br = pars(5)
-  hyperpars = pars(6:)
-
-  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,'MQ',gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,3)
-
-  k11 = Vc**2 * gamma_g_g + Vr**2 * gamma_dg_dg
-
-  k33 = Bc**2 * gamma_g_g + Br**2 * gamma_dg_dg
-
-  k22 = Lc**2 * gamma_g_g !+ Lr**2 * gamma_dg_dg
-
-  k12 = Vc*Lc*gamma_g_g + Vr*Lc*gamma_dg_g
-
-  k13 = Vc*Bc*gamma_g_g + Vr*Br*gamma_dg_dg + (Vc*Br - Vr*Bc)*gamma_g_dg
-
-  k23 = Lc*Bc*gamma_g_g + Lc*Br*gamma_g_dg
-
-  if (nx1 == nx2) then
-    k21 = transpose(k12)
-    k31 = transpose(k13)
-    k32 = transpose(k23)
+  if ( ndim == 1 ) then
+     call Multi1(pars,x1,x2,kernel(1:2),cov,nx1,nx2)
+  else if ( ndim == 2 ) then
+     call Multi2(pars,x1,x2,kernel(1:2),cov,nx1,nx2)
+  else if ( ndim == 3 ) then
+     call Multi3(pars,x1,x2,kernel(1:2),cov,nx1,nx2)
+  else if ( ndim == 4 ) then
+     call Multi4(pars,x1,x2,kernel(1:2),cov,nx1,nx2)
+  else if ( ndim == 5 ) then
+     call Multi5(pars,x1,x2,kernel(1:2),cov,nx1,nx2)
   else
-    k21 = Vc*Lc*gamma_g_g + Vr*Lc*gamma_g_dg
-    k31 = Vc*Bc*gamma_g_g + (Vr*Bc-Vc*Br)*gamma_g_dg + Vr*Br*gamma_dg_dg
-    k32 = Bc*Lc*gamma_g_g - Lc*Br*gamma_g_dg
+     call Multin(pars,x1,x2,kernel(1:2),ndim,cov,nx1,nx2)
   end if
 
-
-  cov(0*nx1/m:1*nx1/m-1,0*nx2/m:1*nx2/m-1) = k11
-  cov(0*nx1/m:1*nx1/m-1,1*nx2/m:2*nx2/m-1) = k12
-  cov(0*nx1/m:1*nx1/m-1,2*nx2/m:3*nx2/m-1) = k13
-  !
-  cov(1*nx1/m:2*nx1/m-1,0*nx2/m:1*nx2/m-1) = k21
-  cov(1*nx1/m:2*nx1/m-1,1*nx2/m:2*nx2/m-1) = k22
-  cov(1*nx1/m:2*nx1/m-1,2*nx2/m:3*nx2/m-1) = k23
-  !
-  cov(2*nx1/m:3*nx1/m-1,0*nx2/m:1*nx2/m-1) = k31
-  cov(2*nx1/m:3*nx1/m-1,1*nx2/m:2*nx2/m-1) = k32
-  cov(2*nx1/m:3*nx1/m-1,2*nx2/m:3*nx2/m-1) = k33
-
-
-end subroutine R15MultiKernel
-!
+end subroutine
 
 !This subroutine computes the multi-dimensional GP matrix for one time-serie
 !With a QP kernel
-subroutine MultiQP1(pars,x1,x2,kernel,cov,nx1,nx2)
+subroutine Multi1(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -218,11 +190,11 @@ subroutine MultiQP1(pars,x1,x2,kernel,cov,nx1,nx2)
 
   cov = Ac*Ac*gamma_g_g + Ar*Ar*gamma_dg_dg
 
-end subroutine MultiQP1
+end subroutine Multi1
 
-!This subroutine computes the multi-dimensional GP matrix for two time-series
+!This subroutine computes the multi-dimensional GP matrixor two time-series
 !With a QP kernel
-subroutine MultiQP2(pars,x1,x2,kernel,cov,nx1,nx2)
+subroutine Multi2(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -267,10 +239,10 @@ subroutine MultiQP2(pars,x1,x2,kernel,cov,nx1,nx2)
   cov(1*nx1/m:2*nx1/m-1,1*nx2/m:2*nx2/m-1) = k22
   !
 
-end subroutine MultiQP2
+end subroutine Multi2
 
 !
-subroutine MultiQP3(pars,x1,x2,kernel,cov,nx1,nx2)
+subroutine Multi3(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -332,9 +304,9 @@ subroutine MultiQP3(pars,x1,x2,kernel,cov,nx1,nx2)
   cov(2*nx1/m:3*nx1/m-1,2*nx2/m:3*nx2/m-1) = k33
 
 
-end subroutine MultiQP3
+end subroutine Multi3
 !!
-subroutine MultiQP4(pars,x1,x2,kernel,cov,nx1,nx2)
+subroutine Multi4(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -423,9 +395,9 @@ subroutine MultiQP4(pars,x1,x2,kernel,cov,nx1,nx2)
   !
 
 
-end subroutine MultiQP4
+end subroutine Multi4
 !
-subroutine MultiQP5(pars,x1,x2,kernel,cov,nx1,nx2)
+subroutine Multi5(pars,x1,x2,kernel,cov,nx1,nx2)
   use constants
   implicit none
   !
@@ -542,62 +514,60 @@ subroutine MultiQP5(pars,x1,x2,kernel,cov,nx1,nx2)
   !
 
 
-end subroutine MultiQP5
-!
-!subroutine QPMultiKernel(pars,x1,x2,cov,nx1,nx2,ndim)
-!  use constants
-!  implicit none
-!  !The ndim variable is defined inside constants.f90
-!  !
-!  integer, intent(in) :: nx1, nx2, ndim
-!  real(kind=mireal), intent(in) :: pars(0:ndim*2+3-1) !m*2 amplitudes, 3 parameters for the QP kernel
-!  real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
-!  real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
+end subroutine Multi5
+
+subroutine Multin(pars,x1,x2,kernel,m,cov,nx1,nx2)
+  use constants
+  implicit none
   !
-!  real(kind=mireal), dimension(0:nx1/ndim-1,0:nx2/ndim-1) :: gamma_g_g, gamma_dg_dg, gamma_g_dg, gamma_dg_g
-!  real(kind=mireal), dimension(0:nx1/ndim-1,0:nx2/ndim-1,0:ndim-1,0:ndim-1) :: kas
-!  real(kind=mireal) :: Amplitudes(0:ndim*2-1)
-!  real(kind=mireal) :: le, lp, P
-!  integer :: i, j
-!
-!  !Read the parameters
-!  Amplitudes(:) = pars(0:ndim*2-1)
-!  le = pars(ndim*2)
-!  lp = pars(ndim*2+1)
-!   P = pars(ndim*2+2)
-!
-!  call get_gammas(x1(0:nx1/ndim-1),x2(0:nx2/ndim-1),le,lp,P,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,&
-!                     nx1/ndim,nx2/ndim)
-!
-!  if ( nx1 .ne. nx2  ) then !Compute the K's for not squared matrices
-!
-!  do i = 0, ndim - 1
-!    do j = 0, ndim - 1
-!      kas(:,:,i,j) = amplitudes(i*2)*amplitudes(j*2)*gamma_g_g + &
-!                     amplitudes(i*2+1)*amplitudes(j*2+1)*gamma_dg_dg + &
-!                     ( amplitudes(i*2)*amplitudes(j*2+1) - amplitudes(i*2+1)*amplitudes(j*2) )* gamma_g_dg
-!      cov(i*nx1/ndim:(i+1)*nx1/ndim-1,j*nx2/ndim:(j+1)*nx2/ndim-1) = kas(:,:,i,j)
-!    end do
-!  end do
-!
-!  else !Compute the K's for square matrices
-!
-!  do i = 0, ndim - 1
-!    do j = i, ndim - 1
-!      kas(:,:,i,j) = amplitudes(i*2)*amplitudes(j*2)*gamma_g_g + &
-!                     amplitudes(i*2+1)*amplitudes(j*2+1)*gamma_dg_dg + &
-!                     ( amplitudes(i*2)*amplitudes(j*2+1) - amplitudes(i*2+1)*amplitudes(j*2) )* gamma_g_dg
-!      cov(i*nx1/ndim:(i+1)*nx1/ndim-1,j*nx2/ndim:(j+1)*nx2/ndim-1) = kas(:,:,i,j)
-!    end do
-!  end do
-!
-!  do i = 1, ndim - 1
-!    do j = 0, i - 1
-!      kas(:,:,i,j) = transpose(kas(:,:,j,i))
-!      cov(i*nx1/ndim:(i+1)*nx1/ndim-1,j*nx2/ndim:(j+1)*nx2/ndim-1) = kas(:,:,i,j)
-!    end do
-!  end do
-!
-!  end if
-!
-!end subroutine QPMultiKernel
+  integer, intent(in) :: nx1, nx2, m
+  real(kind=mireal), intent(in) :: pars(0:m*2+3-1) !m*2 amplitudes, 3 parameters for the QP kernel
+  real(kind=mireal), intent(in) :: x1(0:nx1-1), x2(0:nx2-1)
+  character(len=2), intent(in)  :: kernel
+  real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
+ !
+  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1) :: gamma_g_g, gamma_dg_dg, gamma_g_dg, gamma_dg_g
+  real(kind=mireal), dimension(0:nx1/m-1,0:nx2/m-1,0:m-1,0:m-1) :: kas
+  real(kind=mireal) :: Amplitudes(0:m*2-1)
+  real(kind=mireal) :: hyperpars(0:2)
+  integer :: i, j, npars
+
+  !Read the parameters
+  Amplitudes(:) = pars(0:m*2-1)
+  npars = size(pars) - m*2
+  hyperpars = pars(m*2:)
+
+  call get_gammas(x1(0:nx1/m-1),x2(0:nx2/m-1),hyperpars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1/m,nx2/m,npars)
+
+  if ( nx1 .ne. nx2  ) then !Compute the K's for not squared matrices
+
+  do i = 0, m - 1
+    do j = 0, m - 1
+      kas(:,:,i,j) = amplitudes(i*2)*amplitudes(j*2)*gamma_g_g + &
+                     amplitudes(i*2+1)*amplitudes(j*2+1)*gamma_dg_dg + &
+                     ( amplitudes(i*2)*amplitudes(j*2+1) - amplitudes(i*2+1)*amplitudes(j*2) )* gamma_g_dg
+      cov(i*nx1/m:(i+1)*nx1/m-1,j*nx2/m:(j+1)*nx2/m-1) = kas(:,:,i,j)
+    end do
+  end do
+
+  else !Compute the K's for square matrices
+
+  do i = 0, m - 1
+    do j = i, m - 1
+      kas(:,:,i,j) = amplitudes(i*2)*amplitudes(j*2)*gamma_g_g + &
+                     amplitudes(i*2+1)*amplitudes(j*2+1)*gamma_dg_dg + &
+                     ( amplitudes(i*2)*amplitudes(j*2+1) - amplitudes(i*2+1)*amplitudes(j*2) )* gamma_g_dg
+      cov(i*nx1/m:(i+1)*nx1/m-1,j*nx2/m:(j+1)*nx2/m-1) = kas(:,:,i,j)
+    end do
+  end do
+
+  do i = 1, m - 1
+    do j = 0, i - 1
+      kas(:,:,i,j) = transpose(kas(:,:,j,i))
+      cov(i*nx1/m:(i+1)*nx1/m-1,j*nx2/m:(j+1)*nx2/m-1) = kas(:,:,i,j)
+    end do
+  end do
+
+  end if
+
+end subroutine

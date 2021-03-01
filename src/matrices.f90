@@ -268,9 +268,9 @@ use constants
   real(kind=mireal), dimension(n,n) :: ai
   real(kind=mireal) :: detlog_a
 
-  !Compute the inverse of the submatrix a
+  !Compute the inverse and determinant of the submatrix a
   call cholesky_inv_det(a,ai,detlog_a,n)
-
+  !Compute the inverse and determinant of the whole matrix
   call invert_2x2block_matrix(b,d,ai,detlog_a,xi,detlog,n,n)
 
 end subroutine invert_square_block_matrices
@@ -311,6 +311,9 @@ use constants
   xi(na+1:na+nd,na+1:na+nd) = idbtab
 
   !xi = 0.d0
+
+  !Comparison between matmul and dgemm in
+  !https://modelingguru.nasa.gov/docs/DOC-1762/diff
 
   !aib  = matmul(ai,b)
   !call DGEMM('n','n',na,nd,na,1.d0,ai,na,b,na,0.d0,aib,na)
@@ -378,8 +381,8 @@ subroutine invert_multi_gp_matrix(K,nt,Kinv,detlog,n)
     !inversion
     else if (nt == 2) then
       call invert_square_block_matrices(K(1:n/2,1:n/2),K(1:n/2,n/2+1:n),K(n/2+1:n,n/2+1:n),Kinv,detlog,n/2)
-!      call invert_square_block_matrices(K(1:n/2,1:n/2),K(n/2+1:n,1:n/2),K(n/2+1:n,n/2+1:n),Kinv,detlog,n/2)
     !If we have more than two time-series, we need to peform an interive 2x2 block
+!      call invert_square_block_matrices(K(1:n/2,1:n/2),K(n/2+1:n,1:n/2),K(n/2+1:n,n/2+1:n),Kinv,detlog,n/2)
     !matrix computation
     else if (nt > 2) then
       do i = 1, nt - 1

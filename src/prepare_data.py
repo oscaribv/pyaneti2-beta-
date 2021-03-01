@@ -93,7 +93,7 @@ if (nplanets_rv > 0):
         n_jrv = len(jrvvec)
         for o in range(0, len(tlab)):
             for ndum in range(0, len(jrvvec)):
-                if ((sjitter[o][0]) == jrvvec[ndum][0]):
+                if ((sjitter[o]) == jrvvec[ndum]):
                     jrvlab.append(ndum)
                     break
     else:

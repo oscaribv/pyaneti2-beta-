@@ -511,7 +511,7 @@ def joint_fit():
     # RV jitter priors
     if is_jitter_rv:
         jrv_prior_flag = ['m']*n_jrv
-        jrv_prior_vals = [1e-3,0.1]*n_jrv
+        jrv_prior_vals = [1e-3,1]*n_jrv
         #jrv_prior_vals = [0.0, 0.05]*n_jrv
     else:
         jrv_prior_flag = ['f']*n_jrv
@@ -571,7 +571,7 @@ def joint_fit():
         krv_labels[len(fit_krv)-3] = 'lambda_e'
         krv_labels[len(fit_krv)-2] = 'lambda_p'
         krv_labels[len(fit_krv)-1] = 'P_GP'
-    elif kernel_rv[0:2] == 'EX' or kernel_rv[0:2] == 'MF':
+    elif kernel_rv[0:2] == 'ME' or kernel_rv[0:2] == 'MM':
         krv_prior_flag = fit_krv
         krv_prior_vals = krv_priors
         krv_labels = [None]*len(fit_krv)

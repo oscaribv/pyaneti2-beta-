@@ -2,9 +2,47 @@
 !          General routines to compute bla bla
 !---------------------------------------------------------------------
   !This routine is used to select the desired kernel
-  subroutine covfunc(kernel,pars,x1,x2,cov,nx1,nx2,npars)
-  use constants
-  implicit none
+subroutine covfunc(kernel,pars,x1,x2,cov,nx1,nx2,npars)
+use constants
+implicit none
+  !
+  integer, intent(in) :: nx1, nx2, npars
+  character (len=3), intent(in) :: kernel
+  real(kind=mireal), intent(in) :: pars(0:npars-1) !There are only two parameters for this kernel
+  real(kind=mireal), intent(in) :: x1(0:nx1-1)
+  real(kind=mireal), intent(in) :: x2(0:nx2-1)
+  real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
+  !
+  integer :: ndim
+
+  if ( kernel == 'SEK' ) then
+     call SEKernel(pars,x1,x2,cov,nx1,nx2)
+  else if ( kernel == 'M32' ) then
+     call M32Kernel(pars,x1,x2,cov,nx1,nx2)
+  else if ( kernel == 'M52' ) then
+     call M52Kernel(pars,x1,x2,cov,nx1,nx2)
+  else if ( kernel == 'QPK' ) then
+     call QPKernel(pars,x1,x2,cov,nx1,nx2)
+  else if ( kernel == 'QP2' ) then
+     call QPKernel2(pars,x1,x2,cov,nx1,nx2)
+  else if ( kernel(1:2) == 'MQ' .or. kernel(1:2) == 'ME' .or. kernel(1:2) == 'MM') then
+    !-Multi-GP case
+    !What is the number of dimensions?
+    read(kernel(3:3),'(i1)') ndim
+    !Call the routine that computes the multi dimensional matrix
+    call MultidimCov(pars,x1,x2,kernel,ndim,cov,nx1,nx2)
+  !---------------------------------------------
+  else
+     print *, 'ERROR: Kernel ', kernel,' is not defined!'
+     stop
+  end if
+
+end subroutine covfunc
+
+
+subroutine covfunc_py(kernel,pars,x1,x2,cov,nx1,nx2,npars)
+use constants
+implicit none
   !
   integer, intent(in) :: nx1, nx2, npars
   character (len=3), intent(in) :: kernel
@@ -13,61 +51,13 @@
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
 
-  if ( kernel == 'SEK' ) then
-     call SEKernel(pars,x1,x2,cov,nx1,nx2)
-  else if ( kernel == 'M32' ) then
-     call M32Kernel(pars,x1,x2,cov,nx1,nx2)
-  else if ( kernel == 'QPK' ) then
-     call QPKernel(pars,x1,x2,cov,nx1,nx2)
-  else if ( kernel == 'QP2' ) then
-     call QPKernel2(pars,x1,x2,cov,nx1,nx2)
-  !-Multi-GP Quasi-periodic Kernel
-  else if ( kernel == 'MQ1' ) then
-     call MultiQP1(pars,x1,x2,'MQ',cov,nx1,nx2)
-  else if ( kernel == 'MQ2' ) then
-     call MultiQP2(pars,x1,x2,'MQ',cov,nx1,nx2)
-  else if ( kernel == 'MQ3' ) then
-     call MultiQP3(pars,x1,x2,'MQ',cov,nx1,nx2)
-  else if ( kernel == 'MQ4' ) then
-     call MultiQP4(pars,x1,x2,'MQ',cov,nx1,nx2)
-  else if ( kernel == 'MQ5' ) then
-     call MultiQP5(pars,x1,x2,'MQ',cov,nx1,nx2)
-  !-Multi-GP Exponential Kernel
-  else if ( kernel == 'EX1' ) then
-     call MultiQP1(pars,x1,x2,'EX',cov,nx1,nx2)
-  else if ( kernel == 'EX2' ) then
-     call MultiQP2(pars,x1,x2,'EX',cov,nx1,nx2)
-  else if ( kernel == 'EX3' ) then
-     call MultiQP3(pars,x1,x2,'EX',cov,nx1,nx2)
-  else if ( kernel == 'EX4' ) then
-     call MultiQP4(pars,x1,x2,'EX',cov,nx1,nx2)
-  else if ( kernel == 'EX5' ) then
-     call MultiQP5(pars,x1,x2,'EX',cov,nx1,nx2)
-  !-Multi-GP Matern 5/2 Kernel
-  else if ( kernel == 'MF1' ) then
-     call MultiQP1(pars,x1,x2,'MF',cov,nx1,nx2)
-  else if ( kernel == 'MF2' ) then
-     call MultiQP2(pars,x1,x2,'MF',cov,nx1,nx2)
-  else if ( kernel == 'MF3' ) then
-     call MultiQP3(pars,x1,x2,'MF',cov,nx1,nx2)
-  else if ( kernel == 'MF4' ) then
-     call MultiQP4(pars,x1,x2,'MF',cov,nx1,nx2)
-  else if ( kernel == 'MF5' ) then
-     call MultiQP5(pars,x1,x2,'MF',cov,nx1,nx2)
-  !---------------------------------------------
-  else if ( kernel == 'R15' ) then
-     print *, 'The kernel R15 has been removed since the same fit can be done with  the kernel MQ2'
-     stop
-  else
-     print *, 'ERROR: Kernel ', kernel,' is not defined!'
-     stop
-  end if
+  call covfunc(kernel,pars,x1,x2,cov,nx1,nx2,npars)
 
-  end subroutine covfunc
+end subroutine covfunc_py
 
-  subroutine pred_gp(kernel,covpar,xobs,yobs,eobs,xtest,jit,ljit,mvec,cov,nobs,ntest,npar,njit)
-  use constants
-  implicit none
+subroutine pred_gp(kernel,covpar,xobs,yobs,eobs,xtest,jit,ljit,mvec,cov,nobs,ntest,npar,njit)
+use constants
+implicit none
   !
   integer, intent(in) :: nobs, ntest, npar, njit
   character (len=3), intent(in) :: kernel
@@ -98,18 +88,17 @@
   !Get the inverse matrix
   dummy = K
   call inverse(dummy,Ki,nobs)
-  !call cholesky_inv_det(K,Ki,dummy_det,nobs)
 
   !
   mvec = matmul(Ks,matmul(Ki,yobs))
   !
   cov = Kss - matmul(Ks,matmul(Ki,transpose(ks)))
 
-  end subroutine pred_gp
+end subroutine pred_gp
 
-  subroutine NLL_GP(p,kernel,x,y,e,jit,ljit,nll,chi2,np,nx,njit)
-  use constants
-  implicit none
+subroutine NLL_GP(p,kernel,x,y,e,jit,ljit,nll,chi2,np,nx,njit)
+use constants
+implicit none
   !
   integer, intent(in) :: np, nx, njit
   real(kind=mireal), dimension(0:np-1), intent(in) :: p
@@ -128,27 +117,25 @@
   real(kind=mireal) :: nl1, nl2
   integer :: mk
 
-  !covariance matrix for observed vector
-  s2 = e**2 + jit(ljit)**2
+  !Compute covariance matrix using the input kernel
   call covfunc(kernel,p,x,x,K,nx,nx,np)
+  !Compute the diagonal elements from the white noise of each datum and its corresponding jitter term
+  s2 = e**2 + jit(ljit)**2
   call fill_diag(s2,diag,nx)
+  !Get the covariance function + the diagonal terms
   K = K + diag
-  !Get the inverse matrix
 
+  !Compute the inverse and ln(det) of the covariance matrix
   if ( kernel(1:2) == 'MQ' .or. kernel(1:2) == 'EX' .or. kernel == 'MF' ) then
-
       !Check how many time-series we have
       !Solution seen at https://stackoverflow.com/questions/9900417/character-to-integer-conversion-in-fortran
       read(kernel(3:3),'(i1)') mk
-
-      !print *, mk
-
-      call invert_multi_gp_matrix(K,mk,Ki,nl2,nx)
-
-  else
-
+      !Compute the inverse using matrix decomposition into blocks
+!      call invert_multi_gp_matrix(K,mk,Ki,nl2,nx)
       call cholesky_inv_det(K,Ki,nl2,nx)
-
+  else
+      !Compute the inverse using cholesky decomposition (It uses efficient LAPACK subroutines)
+      call cholesky_inv_det(K,Ki,nl2,nx)
   end if
 
 
@@ -165,12 +152,12 @@
 
   nll = 5.d-1*(chi2 + nl2 + nx * log_two_pi)
 
-  end subroutine NLL_GP
+end subroutine NLL_GP
 
 
-  subroutine NLL_GP_py(p,kernel,x,y,e,jit,ljit,nll,np,nx,njit)
-  use constants
-  implicit none
+subroutine NLL_GP_py(p,kernel,x,y,e,jit,ljit,nll,np,nx,njit)
+use constants
+implicit none
   !
   integer, intent(in) :: np, nx, njit
   real(kind=mireal), dimension(0:np-1), intent(in) :: p
@@ -185,15 +172,15 @@
 
   call NLL_GP(p,kernel,x,y,e,jit,ljit,nll,chi2,np,nx,njit)
 
-  end subroutine NLL_GP_py
+end subroutine NLL_GP_py
 
 !---------------------------------------------------------------------
 !                         KERNELS
 !---------------------------------------------------------------------
 
-  subroutine SEKernel(pars,x1,x2,cov,nx1,nx2)
-  use constants
-  implicit none
+subroutine SEKernel(pars,x1,x2,cov,nx1,nx2)
+use constants
+implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:1) !There are only two parameters for this kernel
@@ -205,25 +192,43 @@
   call fcdist(x1,x2,cov,nx1,nx2)
   cov = pars(0) * exp( - pars(1) * cov * cov )
 
-  end subroutine SEKernel
+end subroutine SEKernel
 
-  subroutine M32Kernel(pars,x1,x2,cov,nx1,nx2)
-  use constants
-  implicit none
+subroutine M32Kernel(pars,x1,x2,cov,nx1,nx2)
+use constants
+implicit none
   !
   integer, intent(in) :: nx1, nx2
   real(kind=mireal), intent(in) :: pars(0:1) !There are only two parameters for this kernel
   real(kind=mireal), intent(in) :: x1(0:nx1-1)
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
-  !A = pars(0), Gamma = pars(1)
+  !A = pars(0), lambda = pars(1)
 
   !Get the x_i - x_j
   call fcdist(x1,x2,cov,nx1,nx2)
-  cov = pars(1)*cov*cov
-  cov = pars(0) * ( 1.d0 + sqrt(3.d0*cov)) * exp(-sqrt(3.d0*cov))
+  cov = sqrt(3.d0)*abs(cov)/pars(1)
+  cov = pars(0)* pars(0) * ( 1.d0 + cov) * exp(-cov)
 
-  end subroutine M32Kernel
+end subroutine M32Kernel
+
+subroutine M52Kernel(pars,x1,x2,cov,nx1,nx2)
+use constants
+implicit none
+  !
+  integer, intent(in) :: nx1, nx2
+  real(kind=mireal), intent(in) :: pars(0:1) !There are only two parameters for this kernel
+  real(kind=mireal), intent(in) :: x1(0:nx1-1)
+  real(kind=mireal), intent(in) :: x2(0:nx2-1)
+  real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
+  !A = pars(0), lambda = pars(1)
+
+  !Get the x_i - x_j
+  call fcdist(x1,x2,cov,nx1,nx2)
+  cov = sqrt(5.d0)*abs(cov)/pars(1)
+  cov = pars(0)* pars(0) * ( 1.d0 + cov + cov*cov/3.0) * exp(-cov)
+
+end subroutine M52Kernel
 
   subroutine QPKernel(pars,x1,x2,cov,nx1,nx2)
   use constants
