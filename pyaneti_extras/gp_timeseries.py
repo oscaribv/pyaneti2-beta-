@@ -1,0 +1,360 @@
+import numpy as np
+import sys
+import matplotlib.pyplot as plt
+import pyaneti as pti
+from scipy.spatial.distance import cdist
+from numpy.random import multivariate_normal
+from numpy.linalg import inv
+from numpy.linalg import slogdet
+from scipy.optimize import fmin
+import seaborn as sns
+from scipy.interpolate import interp1d
+from matplotlib import gridspec
+sns.set(style='ticks')
+sns.set_color_codes('deep')
+
+#Details of the black magic here -> https://astroplan.readthedocs.io/en/latest/tutorials/summer_triangle.html
+from astroplan import Observer
+from astropy.coordinates import SkyCoord
+from astroplan import FixedTarget
+from astropy.time import Time
+#from astroplan import download_IERS_A
+#download_IERS_A()
+
+#Brute force function to create times in which the target is observed from a given observatory
+#This function create a times vector in which the star is observed at the observatory in the interval between
+#tmin and tmax
+def create_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-100',observatory='lapalma'):
+    times = []
+    observatory = Observer.at_site(observatory)
+    star = FixedTarget.from_name(star)
+    while len(times) < ndata:
+        #Draw a dummy random time between tmin and tmax
+        drt = np.random.uniform(tmin,tmax)
+        time = Time(drt,format='mjd')
+        air_mass = observatory.altaz(time,star).secz
+        if observatory.target_is_up(time,star) and air_mass < air_mass_limit:
+            #We accept the dummy random time
+            times.append(drt)
+
+    #Sort thet times
+    times = sorted(times)
+
+    return np.array(times)
+
+
+class gp_timeseries():
+    """
+    Class to create simulated RVs and acitivity/simmetry indicators assuming they all can be described
+    by the same Gaussian Process (following Rajpaul et al., 2015, MNRAS, 442, 2269).
+    """
+
+
+    def __init__(self,time=[],tmin=0,tmax=60,offset_rv=0,\
+                 amplitudes=[0.0058,0.0421,0.024,0.0,0.02,-0.86],
+                 kernel_parameters=[31.2,0.55,4.315], kernel='QPK',
+                 time_series=['rhk','bis'],
+                 points_per_period=50,seed=123):
+        """
+        Input parameters:
+        tmin        -> minimum temporal value
+        tmax        -> maximum temporal value
+        offset_rv   -> systematic velocity of the star to simulate
+        amplitudes  -> Amplitudes of the mutli-GP approach, each time-series has to amplitudes following Rajpaul et al., 2015.
+        kernel_parameter -> Hyper-parameters for the given kernel
+        kernel      -> Chose the kernel,Quasi-Periodic Kernel 'QPK', Matern 5/2 'M52', Exponential 'EXP'
+        time_series -> time_series for the symmetry/activity indicators, the RV time-series is labelled by default as 'rvs'
+        seed        -> Set a seed for random numbers
+
+        The instance has the following attributes:
+        offset_rv   -> radial velocity offset
+        lambda_e    -> lambda_e term of the Quasi-periodic Kernel
+        lambda_p    -> lambda_p term of the Quasi-periodic Kernel
+        gp_period   -> Period of the Quasi-Periodic Kernel
+        amplitudes  -> Amplitudes that relate the time-series (see Rajpaul et al., 2015)
+        time        -> time-stamps between tmin and tmax
+        seed        -> Seed used to create the time-series
+        gp_rvs      -> GP induced RV time-series
+        time_series -> Name of the time-series
+        rvs         -> RV time-series
+        """
+
+
+        #Attributes to be stored in the class
+        self.kernel = kernel
+        self.kernel_parameters = kernel_parameters
+        #Multi-GP amplitudes as attribute
+        self.amplitudes = amplitudes[:]
+        #RV offset
+        self.offset_rv = offset_rv
+
+
+        if len(time) > 0:
+            self.time = time
+        else:
+            #points per period
+            jump = points_per_period/self.gp_period
+            #Create vector time
+            self.time = np.linspace(tmin,tmax,int(jump*(tmax-tmin)))
+
+        #offset to RVs
+        self.rvs  = np.array([self.offset_rv]*len(self.time))
+
+        #Initiate random seed
+        self.seed = seed
+        np.random.seed(self.seed)
+
+        #How many timeseries do we have?
+        #Assuming that we have two amplitudes per time-series
+        nseries = len(amplitudes)//2
+
+        #Create timeseries to be used in case they were not given as input
+        if len(time_series) == 0: time_series = [ 'a'+str(i) for i in range(1,nseries)]
+
+        #Generate time_series attribute with the name of all the time-series contained in the instance
+        self.time_series = np.concatenate([['rvs'],time_series])
+
+        #Create vector with nseries repetions for self.time (required by pyaneti)
+        self.bigtime = np.array(np.concatenate([list(self.time)]*nseries))
+
+        #Create vector with hyper parameters as required in covfunc input
+        gp_parameters = np.concatenate([amplitudes,qp_params])
+
+        #Get the kernel label that we need to compute the correlation matrix with pyaneti
+        mi_kernel = ''
+        if self.kernel == 'QPK':
+            mi_kernel = 'MQ'
+        elif self.kernel == 'M52':
+            mi_kernel = 'MM'
+        elif self.kernel == 'EXP':
+            mi_kernel = 'ME'
+        else:
+            print("The input kernel is not supported. Supported kernels are: \n")
+            print("QPK -> Quasi-Periodic Kernel\n")
+            print("M52 -> Matern 5/2 Kernel\n")
+            print("EXP -> Exponential Kernel\n")
+            sys.exit()
+        #Compute the correlation matrix
+        cov = pti.multidimcov(gp_pars,self.bigtime,self.bigtime,mi_kernel,nseries)
+
+        #Draw a sample
+        ceros = np.zeros(len(self.bigtime))
+        samples = multivariate_normal(ceros,cov,size=1)
+        #samples contains a big vector with the RVs and all the activity indicators
+
+        #Lenght of the time vector
+        lt = len(self.time)
+
+        #Extract the RVs and put them in the gp_rvs atribute
+        self.gp_rvs = np.array(samples[0][0:lt])
+
+        #Generate all the attributes with the time-series
+        #each time-series is labeled
+        for i,label in enumerate(self.time_series):
+            setattr(self, label, np.array(samples[0][i*lt:(i+1)*lt]))
+
+
+    def add_planet(self,planet_params=[0,0.011,1.67,0,np.pi/2],planet_name='planet_b'):
+        """
+        This method adds a RV planet signal following a Keplerian orbit where
+        T0 = time of minimum conjunction
+        K  = Semi-amplitude of the planet induced RV signal
+        P  = planetary orbital period
+        e  = orbit eccentricity
+        w  = angle of periastron
+        Input parameters:
+        planet_params -> has to be given as T0, K, P, e, w
+        planet_name   -> Name of the planet, default is 'planet_b'
+        """
+
+        #Create planet_name atrribute with the exoplanet parameters (planet_params)
+        setattr(self,planet_name,planet_params)
+
+        #Compute the Keplerian curve with the input planet parameters
+        prv = pti.rv_curve_mp(self.time,0.0,*planet_params,0.0,0.0)
+
+        #Set the rv_planet_name attribute with the induced RV signal for the actual planet
+        setattr(self,'rv_'+planet_name,prv)
+
+        #Create the planet_names attribute (an empty list) if has not beed previously defined
+        if not hasattr(self,'planet_names'):
+            self.planet_names = []
+
+        #The following lines will run only if the planet has not beed added previously
+        #This avoids to add the same planet more than once
+        if planet_name not in self.planet_names:
+            self.planet_names.append(planet_name)
+            self.rvs = self.rvs + getattr(self,'rv_'+planet_name)
+
+    def remove_planet(self,planet_name='planet_b'):
+        """
+        Remove the planet planet_name from the RV signal (self.rvs)
+        """
+
+        try:
+            #Remove the planet signal
+            self.rvs = self.rvs - getattr(self,'rv_'+planet_name)
+            #Remove the attributes corresponding to the planet
+            delattr(self,'rv_'+planet_name)
+            delattr(self,planet_name)
+        except:
+            #There is no planet to remove
+            pass
+
+
+    def create_data(self,t=[],ndata=0):
+        """
+        This method creates the *_data attributes
+        #these attributes can be modified with red and white noise
+        """
+
+        #First check if we are given an input vector of times to create the data stamps
+        if len(t) > 0:
+            #If yes, create the time-stams doing interpolation
+            self.ndata = len(t)
+            self.time_data = t
+            for label in self.time_series:
+                f = interp1d(self.time,getattr(self,label), kind='cubic')
+                setattr(self,label+'_data',f(self.time_data))
+        #We can also say how many ramdom points we want to extract from the sample
+        elif (ndata > 0):
+            if ndata > len(self.time):
+                self.ndata = len(self.time)
+            else:
+                self.ndata = ndata
+            #extract the indices
+            #in this option is selected randomly from an uniform distribution
+            indices = np.random.random_integers(0,len(self.time),self.ndata)
+            #The *_data attributes are filled using indices
+            self.time_data = self.time[indices]
+            for label in self.time_series:
+                setattr(self,label+'_data',getattr(self,label)[indices])
+        #If user does not specify, the code assumes that all the sample will be used as data
+        else:
+            self.time_data = self.time[:]
+            for label in self.time_series:
+                setattr(self,label+'_data',getattr(self,label))
+
+
+    def add_white_noise(self,err=[]):
+        """
+        Add white noise to the simulated data
+        You need to run get_data_from_sample before
+        #err can be a list in which element is rather,
+        a float indicating the error in each time_series or
+        a list with individual errors for each time_series
+        """
+
+        #First check if the data attributes have been created, if not, create them
+        if not hasattr(self,'time_data'):
+            self.create_data()
+
+        #Avoids the code to crass in case the input is not a list
+        if err.__class__ == float:
+            err = [err]
+
+        #If the list is not as requested, the values are set randomly
+        if len(err) == 0 or len(err) < len(self.time_series):
+            #If user does not specify the error, the error is computed randomly
+            err = np.random.uniform(1e-5,1e-3,len(self.time_series))
+
+        #Add white noise to each time-series
+        for i, label in enumerate(self.time_series):
+            #Create the label+'_err'
+            setattr(self,label+'_err',err[i])
+            #Modify the label+'_data' by adding the white noise
+            setattr(self,label+'_data',np.random.normal(getattr(self,label+'_data'),getattr(self,label+'_err')))
+
+
+    def add_red_noise(self,se_parameters=[1e-4,1]):
+        """
+        Add red noise to each time-series using a square-exponential kernel
+        It allows for a different red noise set of hyperparameters per each time-series
+        """
+
+        #First check if the data attributes have been created, if not, create them
+        if not hasattr(self,'time_data'):
+            self.create_data()
+
+        kernel_parameters = []
+        #Check if the user is providing enough number of square exponential parameters per each time-series
+        if len(se_parameters) < len(self.time_series):
+            #We add the same hyperparameters for all the time-series
+            #this is not recommended!
+            for i in self.time_series:
+                kernel_parameters.append(se_parameters)
+        else:
+            kernel_parameters = se_parameters[:]
+        #Now kernel_parameters is a list where each element is a two-element list with hyperparameters of a square-exponential kernel
+
+        #Add red noise to each time-series
+        for i,serie in enumerate(self.time_series):
+            #Let's start by adding the same level of noise to all time-series
+            #Add red noise by adding a sample of a quasi periodic kernel
+            cov = pti.covfunc('SEK',kernel_parameters[i],self.time,self.time)
+            #Draw a sample
+            ceros = np.zeros(len(self.time))
+            sample = multivariate_normal(ceros,cov)
+            #Add the sample to the corresponding time-series
+            setattr(self, serie, getattr(self,serie) + sample)
+        #Now all time-series have red noise
+
+
+    def periodogram_rvs(self,freqs=np.linspace(0.01,10,100)):
+        from scipy.signal import lombscargle
+        self.pgram = lombscargle(self.time_data,self.rvs_data,freqs,normalize=True)
+        plt.ylabel('Power')
+        plt.xlabel('Period')
+        plt.plot(1/freqs,self.pgram)
+        plt.show()
+
+    def plot(self,fsx=10,fsy=10./4.,save=False,fname='timeseries.pdf'):
+
+        nseries = len(self.time_series)
+
+        plt.figure(figsize=(fsx,nseries*fsy))
+        gs = gridspec.GridSpec(nrows=nseries,ncols=1)
+        gs.update(hspace=0.002)
+        plt.subplot(gs[0])
+        plt.plot(self.time,self.rvs,'-',label='RV')
+        try:
+            for planet in self.planet_names:
+                plt.plot(self.time,getattr(self,'rv_'+planet),'-',label=planet)
+        except:
+            pass
+        try:
+                plt.plot(self.time_data,self.rvs_data,'o',label='simulated data')
+        except:
+            pass
+        plt.ylabel('RV [km/s]')
+        plt.legend(ncol=1,scatterpoints=1,numpoints=1,frameon=True)
+
+        try:
+            for i,label in enumerate(self.time_series[1:]):
+                plt.subplot(gs[i+1])
+                plt.ylabel(label)
+                plt.plot(self.time,getattr(self,label),'-',label=label)
+                try:
+                    plt.plot(self.time_data,getattr(self,label+'_data'),'o',label='simulated data')
+                except:
+                    pass
+                plt.legend(ncol=1,scatterpoints=1,numpoints=1,frameon=True)
+        except:
+            pass
+
+        plt.xlabel('Time [days]')
+
+        if save: plt.savefig(fname,format='pdf',bbox_inches='tight')
+
+        plt.show()
+
+
+    def save_data(self,fname='multigp_data.dat'):
+
+        with open(fname,'w') as file:
+
+            for label in self.time_series:
+                for i in range(len(self.time_data)):
+                    file.write("{}  {}  {}  {}\n".format(self.time_data[i],getattr(self,label+'_data')[i], \
+                                                    getattr(self,label+'_err'),label))
+
