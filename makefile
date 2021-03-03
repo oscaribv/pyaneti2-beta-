@@ -13,9 +13,9 @@ fc=gnu95
 cc=unix 
 
 FLAGS_OMP= -c -m --quiet --f90flags='-fopenmp'
-FLAGS= -c -m  --quiet
-BLIBS = -L/usr/lib/x86_64-linux-gnu/ -llapack -lblas
-LGOMP=-L/usr/lib64/ -lgomp
+FLAGS = -c -m  --quiet
+BLIBS = -llapack -lblas
+LGOMP = -lgomp
 
 SOURCES=src/constants.f90\
 	src/todo.f90\

@@ -322,15 +322,11 @@ class citlalatonac():
         gs.update(hspace=0.002)
         plt.subplot(gs[0])
         plt.plot(self.time,self.rvs,'-',label='RV')
-        try:
+        if hasattr(self,'planet_names'):
             for planet in self.planet_names:
                 plt.plot(self.time,getattr(self,'rv_'+planet),'-',label=planet)
-        except:
-            pass
-        try:
+        if hasattr(self,'time_data'):
                 plt.plot(self.time_data,self.rvs_data,'o',label='simulated data')
-        except:
-            pass
         plt.ylabel('RV [km/s]')
         plt.legend(ncol=1,scatterpoints=1,numpoints=1,frameon=True)
 
