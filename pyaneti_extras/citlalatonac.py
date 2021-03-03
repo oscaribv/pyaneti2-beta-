@@ -43,7 +43,7 @@ def create_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-10
     return np.array(times)
 
 
-class gp_timeseries():
+class citlalatonac():
     """
     Class to create simulated RVs and acitivity/simmetry indicators assuming they all can be described
     by the same Gaussian Process (following Rajpaul et al., 2015, MNRAS, 442, 2269).
@@ -54,7 +54,7 @@ class gp_timeseries():
                  amplitudes=[0.0058,0.0421,0.024,0.0,0.02,-0.86],
                  kernel_parameters=[31.2,0.55,4.315], kernel='QPK',
                  time_series=['rhk','bis'],
-                 points_per_period=50,seed=123):
+                 points_per_day=10,seed=123):
         """
         Input parameters:
         tmin        -> minimum temporal value
@@ -68,9 +68,6 @@ class gp_timeseries():
 
         The instance has the following attributes:
         offset_rv   -> radial velocity offset
-        lambda_e    -> lambda_e term of the Quasi-periodic Kernel
-        lambda_p    -> lambda_p term of the Quasi-periodic Kernel
-        gp_period   -> Period of the Quasi-Periodic Kernel
         amplitudes  -> Amplitudes that relate the time-series (see Rajpaul et al., 2015)
         time        -> time-stamps between tmin and tmax
         seed        -> Seed used to create the time-series
@@ -78,7 +75,6 @@ class gp_timeseries():
         time_series -> Name of the time-series
         rvs         -> RV time-series
         """
-
 
         #Attributes to be stored in the class
         self.kernel = kernel
@@ -88,14 +84,11 @@ class gp_timeseries():
         #RV offset
         self.offset_rv = offset_rv
 
-
         if len(time) > 0:
             self.time = time
         else:
-            #points per period
-            jump = points_per_period/self.gp_period
             #Create vector time
-            self.time = np.linspace(tmin,tmax,int(jump*(tmax-tmin)))
+            self.time = np.linspace(tmin,tmax,int(points_per_day*(tmax-tmin)))
 
         #offset to RVs
         self.rvs  = np.array([self.offset_rv]*len(self.time))
@@ -118,24 +111,25 @@ class gp_timeseries():
         self.bigtime = np.array(np.concatenate([list(self.time)]*nseries))
 
         #Create vector with hyper parameters as required in covfunc input
-        gp_parameters = np.concatenate([amplitudes,qp_params])
+        gp_parameters = np.concatenate([amplitudes,kernel_parameters])
 
         #Get the kernel label that we need to compute the correlation matrix with pyaneti
         mi_kernel = ''
         if self.kernel == 'QPK':
-            mi_kernel = 'MQ'
+            mi_kernel = 'MQ'+str(nseries)
         elif self.kernel == 'M52':
-            mi_kernel = 'MM'
+            mi_kernel = 'MM'+str(nseries)
         elif self.kernel == 'EXP':
-            mi_kernel = 'ME'
+            mi_kernel = 'ME'+str(nseries)
         else:
             print("The input kernel is not supported. Supported kernels are: \n")
             print("QPK -> Quasi-Periodic Kernel\n")
             print("M52 -> Matern 5/2 Kernel\n")
             print("EXP -> Exponential Kernel\n")
             sys.exit()
-        #Compute the correlation matrix
-        cov = pti.multidimcov(gp_pars,self.bigtime,self.bigtime,mi_kernel,nseries)
+
+        #Compute the covariance matrix
+        cov = pti.covfunc(mi_kernel,gp_parameters,self.bigtime,self.bigtime)
 
         #Draw a sample
         ceros = np.zeros(len(self.bigtime))
@@ -144,6 +138,8 @@ class gp_timeseries():
 
         #Lenght of the time vector
         lt = len(self.time)
+
+        #Separate the big sample in multi-dimensional samples
 
         #Extract the RVs and put them in the gp_rvs atribute
         self.gp_rvs = np.array(samples[0][0:lt])
@@ -170,7 +166,7 @@ class gp_timeseries():
         #Create planet_name atrribute with the exoplanet parameters (planet_params)
         setattr(self,planet_name,planet_params)
 
-        #Compute the Keplerian curve with the input planet parameters
+        #Compute the Keplerian curve with the input planet parameters using pyaneti
         prv = pti.rv_curve_mp(self.time,0.0,*planet_params,0.0,0.0)
 
         #Set the rv_planet_name attribute with the induced RV signal for the actual planet
@@ -181,36 +177,43 @@ class gp_timeseries():
             self.planet_names = []
 
         #The following lines will run only if the planet has not beed added previously
-        #This avoids to add the same planet more than once
+        #This avoids to add the same planet more than once, to add more than one planet
+        #each planet has to have a different name
         if planet_name not in self.planet_names:
             self.planet_names.append(planet_name)
             self.rvs = self.rvs + getattr(self,'rv_'+planet_name)
+        #the planet signal has been added
 
     def remove_planet(self,planet_name='planet_b'):
         """
         Remove the planet planet_name from the RV signal (self.rvs)
         """
 
-        try:
+        if planet_name  in self.planet_names:
             #Remove the planet signal
             self.rvs = self.rvs - getattr(self,'rv_'+planet_name)
             #Remove the attributes corresponding to the planet
             delattr(self,'rv_'+planet_name)
             delattr(self,planet_name)
-        except:
+        else:
             #There is no planet to remove
-            pass
+            print('There is no {} to remove'.format(planet_name))
 
 
     def create_data(self,t=[],ndata=0):
         """
         This method creates the *_data attributes
+        *_data atributes mimic the observations that we want to analyse with pyaneti
         #these attributes can be modified with red and white noise
+        There are three ways in which data are created
+        if the t vector is provided, then the data points are created at each element of t
+        if ndata = X where X is larger than zero, then the code will create X random observations
+        if none is specified, then the code assumes that all of the model points are observations
         """
 
         #First check if we are given an input vector of times to create the data stamps
         if len(t) > 0:
-            #If yes, create the time-stams doing interpolation
+            #If yes, create the time-stamps doing interpolation
             self.ndata = len(t)
             self.time_data = t
             for label in self.time_series:
@@ -231,6 +234,7 @@ class gp_timeseries():
                 setattr(self,label+'_data',getattr(self,label)[indices])
         #If user does not specify, the code assumes that all the sample will be used as data
         else:
+            self.ndata = len(self.time)
             self.time_data = self.time[:]
             for label in self.time_series:
                 setattr(self,label+'_data',getattr(self,label))
@@ -247,9 +251,10 @@ class gp_timeseries():
 
         #First check if the data attributes have been created, if not, create them
         if not hasattr(self,'time_data'):
-            self.create_data()
+            print("You have not created the *_data atributes yet!")
+            return
 
-        #Avoids the code to crass in case the input is not a list
+        #Avoids the code to crash in case the input is not a list
         if err.__class__ == float:
             err = [err]
 
@@ -274,7 +279,8 @@ class gp_timeseries():
 
         #First check if the data attributes have been created, if not, create them
         if not hasattr(self,'time_data'):
-            self.create_data()
+            print("You have not created the *_data atributes yet!")
+            return
 
         kernel_parameters = []
         #Check if the user is providing enough number of square exponential parameters per each time-series
@@ -288,16 +294,15 @@ class gp_timeseries():
         #Now kernel_parameters is a list where each element is a two-element list with hyperparameters of a square-exponential kernel
 
         #Add red noise to each time-series
-        for i,serie in enumerate(self.time_series):
+        for i,label in enumerate(self.time_series):
             #Let's start by adding the same level of noise to all time-series
             #Add red noise by adding a sample of a quasi periodic kernel
-            cov = pti.covfunc('SEK',kernel_parameters[i],self.time,self.time)
+            cov = pti.covfunc('SEK',kernel_parameters[i],self.time_data,self.time_data)
             #Draw a sample
-            ceros = np.zeros(len(self.time))
+            ceros = np.zeros(len(self.time_data))
             sample = multivariate_normal(ceros,cov)
             #Add the sample to the corresponding time-series
-            setattr(self, serie, getattr(self,serie) + sample)
-        #Now all time-series have red noise
+            setattr(self, label+'_data', getattr(self,label+'_data') + sample)
 
 
     def periodogram_rvs(self,freqs=np.linspace(0.01,10,100)):
@@ -350,11 +355,24 @@ class gp_timeseries():
 
 
     def save_data(self,fname='multigp_data.dat'):
+        """
+        Save the data in the format that pyaneti needs to run
+        Time    Value    Value_error   label
+        """
 
-        with open(fname,'w') as file:
+        #First check if the data attributes have been created, if not, create them
+        if not hasattr(self,'time_data'):
+            print("You have not created the *_data atributes yet!")
+            return
 
+        with open(fname,'w') as f:
+            f.write('# {} \n'.format(fname))
+            f.write('# Number of planets = {} \n'.format(len(self.planet_names)))
+            f.write('# Number of simulated observations = {} \n'.format(self.ndata))
+            f.write('# Kernel used : {}, with parameters: {} \n'.format(self.kernel,self.kernel_parameters))
+            f.write('# Random number seed = {} \n'.format(self.seed))
+            f.write('# Time   Value   Value_error  time_series_label \n')
             for label in self.time_series:
                 for i in range(len(self.time_data)):
-                    file.write("{}  {}  {}  {}\n".format(self.time_data[i],getattr(self,label+'_data')[i], \
+                    f.write("{:1.7e}  {:1.7e}  {:1.7e}  {}\n".format(self.time_data[i],getattr(self,label+'_data')[i], \
                                                     getattr(self,label+'_err'),label))
-
