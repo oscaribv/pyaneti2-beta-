@@ -84,29 +84,35 @@ subroutine get_M52_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
   real(kind=mireal), intent(in) ::  pars(0:npars-1)
   real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
   !
-  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, expt, dt
+  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, expt, dt, unos
   real(kind=mireal) :: sq5
   real(kind=mireal) :: l !Lambda parameter for the square exponential kernel
 
 
   l = pars(0)
 
-  sq5  = sqrt(5.)
-  dt   = sq5*titj/l
-  expt = exp(-dt)
-
   call fcdist(x1,x2,titj,nx1,nx2)
 
-  gamma_g_g = 1. + dt + dt*dt/3.
-  gamma_g_g = gamma_g_g * expt
+  sq5  = sqrt(5.)
+  dt   = sq5*abs(titj)/l
+  expt = exp(-dt)
 
-  gamma_g_dg = expt * dt * (dt + 1.)
-  gamma_g_dg = - sq5 / 3. / l *gamma_g_dg
+  !Find the signs required for the absolute value derivative
+  unos = titj/abs(titj)
+  !Fill with zero all the divisions by zero
+  where (unos .ne. unos)
+    unos = 0.0
+  end where
+
+  gamma_g_g = expt * ( 1. + dt + dt*dt/3. )
+
+  gamma_g_dg = - 1. / 3. * unos * expt * dt * (dt + 1.)
+  gamma_g_dg = sq5 / l * gamma_g_dg
 
   gamma_dg_g = - gamma_g_dg
 
-  gamma_dg_dg = (dt*dt - dt - 1.) * expt
-  gamma_dg_dg = - 5./3./ l / l * gamma_dg_dg
+  gamma_dg_dg = 1. / 3. * (dt*dt - dt - 1.) * expt
+  gamma_dg_dg =  - 5. / l / l * gamma_dg_dg
 
 end subroutine get_M52_gammas
 
@@ -123,7 +129,7 @@ subroutine get_gammas(x1,x2,pars,kernel,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg
   !
 
   if (kernel == 'MQ') then !Multi-Quasi-periodic Kernel
-        call get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,3)
+       call get_QP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,3)
   else if (kernel == 'ME') then !Multi-Exponential Kernel
       call get_EXP_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg,nx1,nx2,1)
   else if (kernel == 'MM') then !Multi-Matern 5/2 Kernel
@@ -141,7 +147,7 @@ subroutine MultidimCov(pars,x1,x2,kernel,ndim,cov,nx1,nx2)
   real(kind=mireal), intent(in) :: pars(0:ndim*2+3-1)
   real(kind=mireal), intent(in) :: x1(0:nx1-1)
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
-  character(len=3), intent(in)  :: kernel
+  character(len=2), intent(in)  :: kernel
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
   !
 
