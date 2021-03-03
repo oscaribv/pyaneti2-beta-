@@ -30,7 +30,7 @@ implicit none
     !What is the number of dimensions?
     read(kernel(3:3),'(i1)') ndim
     !Call the routine that computes the multi dimensional matrix
-    call MultidimCov(pars,x1,x2,kernel,ndim,cov,nx1,nx2)
+    call MultidimCov(pars,x1,x2,kernel(1:2),ndim,cov,nx1,nx2)
   !---------------------------------------------
   else
      print *, 'ERROR: Kernel ', kernel,' is not defined!'
@@ -190,7 +190,7 @@ implicit none
 
   !Get the x_i - x_j
   call fcdist(x1,x2,cov,nx1,nx2)
-  cov = pars(0) * exp( - pars(1) * cov * cov )
+  cov = pars(0) * pars(0) * exp( - cov * cov / pars(1) / pars(1) )
 
 end subroutine SEKernel
 

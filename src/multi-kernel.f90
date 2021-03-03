@@ -84,7 +84,7 @@ subroutine get_M52_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
   real(kind=mireal), intent(in) ::  pars(0:npars-1)
   real(kind=mireal), intent(out), dimension(0:nx1-1,0:nx2-1) ::  gamma_g_g, gamma_dg_dg, gamma_dg_g, gamma_g_dg
   !
-  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, expt, dt, unos
+  real(kind=mireal), dimension(0:nx1-1,0:nx2-1) :: titj, expt, dt, sgn
   real(kind=mireal) :: sq5
   real(kind=mireal) :: l !Lambda parameter for the square exponential kernel
 
@@ -98,15 +98,15 @@ subroutine get_M52_gammas(x1,x2,pars,gamma_g_g,gamma_g_dg,gamma_dg_g,gamma_dg_dg
   expt = exp(-dt)
 
   !Find the signs required for the absolute value derivative
-  unos = titj/abs(titj)
+  sgn = titj/abs(titj)
   !Fill with zero all the divisions by zero
-  where (unos .ne. unos)
-    unos = 0.0
+  where (sgn .ne. sgn)
+    sgn = 0.0
   end where
 
   gamma_g_g = expt * ( 1. + dt + dt*dt/3. )
 
-  gamma_g_dg = - 1. / 3. * unos * expt * dt * (dt + 1.)
+  gamma_g_dg = - 1. / 3. * sgn * expt * dt * (dt + 1.)
   gamma_g_dg = sq5 / l * gamma_g_dg
 
   gamma_dg_g = - gamma_g_dg
