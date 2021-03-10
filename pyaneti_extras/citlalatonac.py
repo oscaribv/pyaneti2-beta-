@@ -1,12 +1,16 @@
+################################################################################
+#                              citlalatonac.py                                 #
+#   Citlalatonac is the name of the Aztec god who created the stars            #
+#                           Oscar Barragan, 2021                               #
+################################################################################
+
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+import sys
+sys.path.append("../")
 import pyaneti as pti
-from scipy.spatial.distance import cdist
 from numpy.random import multivariate_normal
-from numpy.linalg import inv
-from numpy.linalg import slogdet
-from scipy.optimize import fmin
 import seaborn as sns
 from scipy.interpolate import interp1d
 from matplotlib import gridspec
@@ -18,8 +22,6 @@ from astroplan import Observer
 from astropy.coordinates import SkyCoord
 from astroplan import FixedTarget
 from astropy.time import Time
-#from astroplan import download_IERS_A
-#download_IERS_A()
 
 #Brute force function to create times in which the target is observed from a given observatory
 #This function create a times vector in which the star is observed at the observatory in the interval between
