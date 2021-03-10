@@ -225,9 +225,9 @@ if (is_den_a):
     alab = '$\\rho_{\star}$'
 # planet parameter labels
 for o in range(0, nplanets):
-    etiquetas = ['$T0$'+plabels[o]+' [days]', '$P$'+plabels[o]+' [days]', elab+plabels[o],
-                 wlab+plabels[o], ilab+plabels[o], alab+plabels[o]+'[${\\rm g\,cm^{-3}}$]',
-                 klab+plabels[o]+'[${\\rm km\,s^{-1}}$]']
+    etiquetas = ['$T0_{'+plabels[o]+'}$ [days]', '$P_{'+plabels[o]+'}$ [days]', elab+'$_{'+plabels[o]+'}$',
+                 wlab+'$_{'+plabels[o]+'}$', ilab+'$_{'+plabels[o]+'}$', alab+'$_{'+plabels[o]+'}$'+'[${\\rm g\,cm^{-3}}$]',
+                 klab+'$_{'+plabels[o]+'}$'+'[${\\rm km\,s^{-1}}$]']
     labs.append(etiquetas)
 # planet radius labels
 for o in range(0, nplanets):
