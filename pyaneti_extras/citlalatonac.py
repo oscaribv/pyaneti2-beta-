@@ -315,7 +315,7 @@ class citlalatonac():
         plt.plot(1/freqs,self.pgram)
         plt.show()
 
-    def plot(self,fsx=10,fsy=10./4.,save=False,fname='timeseries.pdf'):
+    def plot(self,fsx=10,fsy=10./4.,save=False,fname='timeseries.pdf',show=True):
 
         nseries = len(self.time_series)
 
@@ -349,7 +349,7 @@ class citlalatonac():
 
         if save: plt.savefig(fname,format='pdf',bbox_inches='tight')
 
-        plt.show()
+        if show: plt.show()
 
 
     def save_data(self,fname='multigp_data.dat'):
