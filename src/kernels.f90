@@ -251,7 +251,7 @@ end subroutine M52Kernel
   !Get the x_i - x_j
   call fcdist(x1,x2,cov,nx1,nx2)
   cov = - (sin(pi*cov/P))**2/2./lp**2 - cov**2/2./le**2
-  cov = A * exp(cov)
+  cov = A * A * exp(cov)
 
   end subroutine QPKernel
 
