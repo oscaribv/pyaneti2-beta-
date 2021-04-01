@@ -438,13 +438,18 @@ implicit none
 
   !Update limb darkening coefficients, pass from q's to u's
   is_good = .true.
+
   do n = 0, nbands - 1
     call get_us(ldc(2*n),ldc(2*n+1),up_ldc(2*n),up_ldc(2*n+1),1)
     call check_us(up_ldc(2*n),up_ldc(2*n+1),is_good)
     if ( .not. is_good ) exit
   end do
 
+  !Avoid solutions with eccentricis larger than 1 and smaller than zero
   if ( any( e > 1.d0 ) .or. any(e < 0.d0 ) ) is_good = .false.
+
+  !Avoid solutions when the planet orbits falls inside the star
+  if ( any(a < 1.1) ) is_good = .false.
 
   if ( is_good ) then
 

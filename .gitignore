@@ -17,3 +17,5 @@ outpy/*
 .buildconfig
 lunas/*
 *.pyc
+examples/
+run*

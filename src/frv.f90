@@ -113,7 +113,11 @@ implicit none
 
   is_limit_good = .true.
 
+  !Avoid solutions with eccentricities larger than 1 and smaller than zero
   if ( any( e > 1.d0 ) .or. any(e < 0.d0 ) ) is_limit_good = .false.
+
+  !Avoid solutions with Doppler semi-amplitudes smaller than zero
+  if (  any( k < 0.d0 ) ) is_limit_good = .false.
 
   if ( is_limit_good ) then
 

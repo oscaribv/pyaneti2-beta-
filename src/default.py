@@ -89,8 +89,10 @@ is_b_factor = True
 # If True, the code sample for the stellar density to the 1/3 power (rho^{1/3})
 # instead of scaled semi major axis
 # for multiplanet fits, it fits, the scaled semi-major axis of all fitted planets
-# are calculated from the fitted rho^{1/3}
-is_den_a = False
+# are calculated from the fitted stellar density
+#is_den_a is not depreciated, new varialbe is
+sample_stellar_density = False
+is_den_a = None
 # If True, the code sample for log10(k) instead of K
 is_log_k = False
 # NOT WORK NOW! If True, the code sample for log10(v0) instead of v0
