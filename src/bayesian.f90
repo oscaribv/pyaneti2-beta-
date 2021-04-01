@@ -12,14 +12,14 @@ implicit none
   integer, intent(in), dimension(0:size_rv-1) :: rvlab, jrvlab
   integer, intent(in), dimension(0:size_tr-1) :: trlab, jtrlab
   character(len=6), intent(in) :: kernels
-!npars = 7*npl + (npl + LDC)*nbands + noffsets + njitter + ntrends
+  !npars = 7*npl + (npl + LDC)*nbands + noffsets + njitter + ntrends
   real(kind=mireal), intent(in) :: pars(0:npars-1)
   real(kind=mireal), intent(in) :: model_double(0:nmodel_double-1)
   integer, intent(in) :: model_int(0:nmodel_int-1)
   logical, intent(in) :: flags(0:5)
   logical, intent(in) :: tff(0:1) !total_fit_flag
   real(kind=mireal), intent(out) :: loglike, chi2_rv, chi2_tr
-!Local variables
+  !Local variables
   !Model int variables
   integer :: npl, nbands,nradius, ntels, nldc, njrv, njtr, n_cad(0:nmodel_int-8-1), np_rv, np_tr
   !Model double variables
