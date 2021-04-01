@@ -97,13 +97,13 @@ def fancy_tr_plot(tr_vector, pnumber):
             plt.errorbar(-x_lim*(0.95), min(yflux[m]-deltay), eflux[m]
                          [0], color=local_color, ms=7, fmt=mark_tr[m], alpha=1.0)
             plt.annotate(
-                'Error bar '+bands[m], xy=(-x_lim*(0.70), min(yflux[m]-deltay)), fontsize=fos*0.7)
+                'Error bar \n'+bands[m], xy=(-x_lim*(0.70), min(yflux[m]-deltay)), fontsize=fos*0.7)
             if plot_binned_data:
                 tbin = 10./60.
                 xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
                 plt.plot(xbined, fbined-deltay, 'o',color=tr_colors[m])
             if (m < nbands - 1):
-                dy = max(yflux[m+1])-min(yflux[m+1])
+                dy =  5*max(np.std(res_res[m]),np.std(res_res[m+1]))   #max(yflux[m+1])-min(yflux[m+1])
             deltay = deltay + dy
 
         # save the data
@@ -142,6 +142,7 @@ def fancy_tr_plot(tr_vector, pnumber):
     deltay = 0.
     dy = 0.
     for m in range(nbands):
+        plt.plot([x_lim, -x_lim], [-deltay, -deltay], 'k--', linewidth=1.0, alpha=1.0)
         if (plot_tr_errorbars):
             plt.errorbar((xmodel_res[m]-local_T0)*tfc, res_res[m]
                          * 1e6, eflux[m]*1e6, fmt='.', alpha=0.5)
@@ -156,16 +157,14 @@ def fancy_tr_plot(tr_vector, pnumber):
                 xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
                 plt.plot(xbined,rbined-deltay,'o',color=tr_colors[m])
             if (m < nbands - 1):
-                dy = max(res_res[m])-min(res_res[m])
+                dy = 6*max(np.std(res_res[m]),np.std(res_res[m+1]))
                 dy = dy*1e6
             deltay = deltay + dy
-    #plt.plot([x_lim, -x_lim], [0.0, 0.0], 'k--', linewidth=1.0, alpha=1.0)
     plt.xticks(np.arange(-mxv, mxv+step_plot, step_plot))
     plt.xlim(x_lim, -x_lim)
-    yylims = ax0.get_ylim()
-    miy = (max(abs(yylims[0]), abs(yylims[1])))
-    plt.yticks(range(-int(miy), int(miy), int(miy/2.)))
-    #plt.ylim(-miy, miy)
+    #yylims = ax0.get_ylim()
+    #miy = (max(abs(yylims[0]), abs(yylims[1])))
+    #plt.yticks(range(-int(miy), 5*np.std(res_res[0]), int(miy/2.)))
     # Calcualte the rms
     if (is_plot_std_tr):
         trsigma = np.std(res_res*1e6, ddof=1)
@@ -370,7 +369,7 @@ def plot_lightcurve_timeseries():
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
     tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab],dtype=object)
-    plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
+    plot_labels_tr = [tr_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
                      plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha)
