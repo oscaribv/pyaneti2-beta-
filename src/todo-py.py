@@ -526,8 +526,8 @@ def joint_fit():
             jtr_prior_vals = [1e-3, 1.e-2]*n_jtr
     else:
         n_jtr = 0
-        trlab = [0]*len(megax)
-        jtrlab = [0]*len(megax)
+        trlab = [0]*len(lc_time)
+        jtrlab = [0]*len(lc_time)
         jtr_prior_flag = ['u']*n_jtr
         jtr_prior_vals = [0., 1.e-3]*n_jtr
 
@@ -669,7 +669,7 @@ def joint_fit():
             nwalkers = nwalkers + 1
 
         pti.mcmc_stretch_move(
-            mega_time, mega_rv, megax, megay, mega_err, megae,
+            rv_time, rv_vals, lc_time, lc_flux, rv_errs, lc_errs,
             tlab, jrvlab, trlab, jtrlab,
             flags, total_fit_flag, prior_flags, prior_vals,
             kernels, model_int,
@@ -761,7 +761,7 @@ def joint_fit():
             pars, indices, bounds, loc_labs = pars_for_optimize(prior_flags,prior_vals)
             #Run the minimization
             ftol = 1.e-10
-            res = minimize(get_neg_loglike_python,pars,args=(mega_time,mega_rv,megax,megay,mega_err,megae,
+            res = minimize(get_neg_loglike_python,pars,args=(rv_time,rv_vals,lc_time,lc_flux,rv_err ,lc_errs,
                                                                 tlab,jrvlab,trlab,jtrlab,total_fit_flag,flags,kernels,
                                                                 model_int,model_double,indices,prior_flags,prior_vals),
                                                                 bounds=bounds,method='L-BFGS-B',tol=ftol)

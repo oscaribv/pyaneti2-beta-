@@ -29,9 +29,9 @@ def create_folded_tr_plots():
 
                 #compute the models only for the current label
                 indices = m == np.asarray(trlab)
-                localx = megax[indices]
-                localy = megay[indices]
-                locale = megae[indices]
+                localx = lc_time[indices]
+                localy = lc_flux[indices]
+                locale = lc_errs[indices]
                 localt = np.zeros(len(localx),dtype=int)
 
                 try:
@@ -279,8 +279,8 @@ def plot_all_transits():
 
     # Create the plot of the whole light
     model_flux = pti.flux_tr(
-        megax, [0]*len(megax), pars_tr, rp_val, my_ldc, n_cad, t_cad)
-    res_flux = megay - model_flux
+        lc_time, [0]*len(lc_time), pars_tr, rp_val, my_ldc, n_cad, t_cad)
+    res_flux = lc_flux - model_flux
 
     for i in range(0, nplanets):
         if (fit_tr[i]):
@@ -290,9 +290,9 @@ def plot_all_transits():
                 dy = max(yflux[m+1])-min(yflux[m+1])
 
             xt, dt, yt, et = create_transit_data(
-                megax, megay, megae, i, span_tr[i])
+                lc_time, lc_flux, lc_errs, i, span_tr[i])
             xt2, dt2, yt2, et2 = create_transit_data(
-                megax, res_flux, megae, i, span_tr[i])
+                lc_time, res_flux, lc_errs, i, span_tr[i])
 
             if (is_plot_all_tr[i]):
                 for j in range(0, len(xt)):
@@ -315,22 +315,22 @@ def plot_lightcurve_timeseries():
 
     # Here I need to create a special trlab in order to separate the different colors
     # Now let us imagine that it works with 1-band
-    xmodel = np.arange(min(megax), max(megax), 5./60./24.)
+    xmodel = np.arange(min(lc_time), max(lc_time), 5./60./24.)
     my_trlab = [0]*len(xmodel)
     ymodel = pti.flux_tr(xmodel, my_trlab, pars_tr.transpose(),
                          rp_val, my_ldc, n_cad, t_cad, nradius)
     #ymodel = pti.flux_tr(xmodel,my_trlab,pars_tr,rp_val,my_ldc,n_cad,t_cad)
 
     # Calcualte the residuals
-    trres = pti.flux_tr(megax, trlab, pars_tr.transpose(),
+    trres = pti.flux_tr(lc_time, trlab, pars_tr.transpose(),
                         rp_val, my_ldc, n_cad, t_cad, nradius)
-    trres = megay - trres
+    trres = lc_flux - trres
 
     # are we plotting a GP together with the RV curve
     if kernel_tr[0:2] != 'No':
-        xvec = megax
-        yvec = megay
-        evec = megae
+        xvec = lc_time
+        yvec = lc_flux
+        evec = lc_errs
         m, C = pti.pred_gp(kernel_tr, pk_tr, xvec, trres,
                            evec, xmodel, jtr, jtrlab)
         tr_mvec = [xmodel, ymodel, 1.+m, (ymodel+m)]
@@ -348,9 +348,9 @@ def plot_lightcurve_timeseries():
 
 
     indices = abs(trres) < ( np.mean(trres) + 5*np.std(trres) )
-    x_c = megax[indices]
-    y_c = megay[indices]
-    e_c = megae[indices]
+    x_c = lc_time[indices]
+    y_c = lc_flux[indices]
+    e_c = lc_errs[indices]
     r_c = trres[indices]
     local_trlab = np.asarray(trlab)
     t_c = local_trlab[indices]
@@ -368,7 +368,7 @@ def plot_lightcurve_timeseries():
 
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
-    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab],dtype=object)
+    tr_dvec = np.asarray([lc_time, lc_flux, lc_errs, lc_errs, trres, trlab],dtype=object)
     plot_labels_tr = [tr_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,

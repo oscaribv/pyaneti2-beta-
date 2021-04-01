@@ -55,9 +55,9 @@ vsini = np.random.normal(
 # Calculate the BIC
 ndata = 0
 if (total_rv_fit):
-    ndata = ndata + len(mega_rv)
+    ndata = ndata + len(rv_vals)
 if (total_tr_fit):
-    ndata = ndata + len(megax)
+    ndata = ndata + len(lc_time)
 
 npars = 0
 
@@ -76,7 +76,7 @@ for o in range(0, len(params)):
     dummy_pars[o] = best_value(params[o], maxloglike, get_value)
 
 log_like_total, chi2tot_val_rv, chi2tot_val_tr = \
-    pti.get_loglike(mega_time, mega_rv, megax, megay, mega_err, megae,
+    pti.get_loglike(rv_time, rv_vals, lc_time, lc_flux, rv_errs, lc_errs,
                     tlab, jrvlab, trlab, jtrlab, total_fit_flag, flags, kernels,
                     dummy_pars[4:], model_int, model_double)
 
@@ -132,8 +132,8 @@ if (method == 'mcmc' or method == 'plot'):
     opars.write('N_chains         = %8i \n' % nwalkers)
     opars.write('N_iter           = %8i \n' % nconv)
     opars.write('thin_factor      = %8i \n' % thin_factor)
-    opars.write('N_rv_data        = %8i \n' % len(mega_time))
-    opars.write('N_tr_data        = %8i \n' % len(megax))
+    opars.write('N_rv_data        = %8i \n' % len(rv_time))
+    opars.write('N_tr_data        = %8i \n' % len(lc_time))
     opars.write('N_data           = %8i \n' % ndata)
     opars.write('N_pars           = %8i \n' % npars)
     opars.write('chi2_rv          = %4.4f\n' % (chi2tot_val_rv))
@@ -269,7 +269,7 @@ if (method == 'mcmc' or method == 'plot'):
                 pars = [Tpe_vec[o][m], P_vec[o][m], e_vec[o][m], w_vec[o][m], i_vec[o][m], ar_vec[o][m]]
                 # This works for a single planet and for a single band
                 rplanet = np.mean(rr_vec[o][m])
-                tiempo = np.arange(min(megax), max( megax), 1./60./24.)  # minute precision
+                tiempo = np.arange(min(lc_time), max( lc_time), 1./60./24.)  # minute precision
                 z_vec[m] = pti.find_z(tiempo, pars)
                 # Z contains is the vector containing the distance between the star and planet centres in stellar radius units
                 tr_index = z_vec[m] < 1 + rplanet
@@ -524,8 +524,8 @@ for o in range(0, np_tr):
 #  for o in range(0,len(et)):
 #      for m in range(0,len(et[o])):
 #              et[o][m] = np.sqrt(et[o][m]**2 + jit_tr**2)
-#  for o in range(0,len(megae)):
-#    megae[o] = np.sqrt( megae[o]**2 + jit_tr**2)
+#  for o in range(0,len(lc_errs)):
+#    lc_errs[o] = np.sqrt( lc_errs[o]**2 + jit_tr**2)
 
 if (total_rv_fit):
     new_errs_all = [None]*len(errs_all)

@@ -32,19 +32,15 @@ if (not os.path.isfile(inf_name)):
     sys.exit()
 
 # Read the file with all the python functions
-# execfile('src/todo-py.py')
 exec(open('src/todo-py.py').read())
 
 # Read the file with the default values
-# execfile('src/default.py')
 exec(open('src/default.py').read())
 
 # Read input file
-# execfile(inf_name)
 exec(open(inf_name).read())
 
 # Prepare data
-# execfile('src/prepare_data.py')
 exec(open('src/prepare_data.py').read())
 
 # Create ouput directory
@@ -68,7 +64,6 @@ joint_fit()
 #             	PRINT AND PLOT ROUTINES
 # -------------------------------------------------------------
 
-# execfile('src/output.py')
 exec(open('src/output.py').read())
 
 # -------------------------------------------------------------

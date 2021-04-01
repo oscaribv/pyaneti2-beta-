@@ -27,7 +27,7 @@ SOURCES=src/constants.f90\
 	src/matrices.f90\
 	src/kernels.f90\
 	src/mcmc.f90\
-	src/multi-kernel.f90\
+	src/multi-gp-routines.f90\
 
 EXECUTABLE=pyaneti
 
