@@ -24,24 +24,30 @@ from astroplan import FixedTarget
 from astropy.time import Time
 
 #Brute force function to create times in which the target is observed from a given observatory
-#This function create a times vector in which the star is observed at the observatory in the interval between
-#tmin and tmax
+#This function create a times vector of lenght ndata in which the star is observed at the observatory
+#in the interval between tmin and tmax
 def create_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-100',observatory='lapalma'):
     times = []
+    #Create a observatory instance with astroplan
     observatory = Observer.at_site(observatory)
+    #Create star object from astroplan, the name has to be a valid simbad name for the target
     star = FixedTarget.from_name(star)
     while len(times) < ndata:
-        #Draw a dummy random time between tmin and tmax
+        #Draw random time between tmin and tmax
         drt = np.random.uniform(tmin,tmax)
-        time = Time(drt,format='mjd')
+        #Get the time object from astropy.time
+        time = Time(drt,format=tformat)
+        #Compute the air_mass that the target has at time t
         air_mass = observatory.altaz(time,star).secz
+        #If the target is observable at time drt and the air_mass < air_mass_limit then
+        #We accept the dummy random time
         if observatory.target_is_up(time,star) and air_mass < air_mass_limit:
-            #We accept the dummy random time
             times.append(drt)
 
     #Sort thet times
     times = sorted(times)
 
+    #Return a numpy array with all the times
     return np.array(times)
 
 
@@ -365,7 +371,7 @@ class citlalatonac():
 
         with open(fname,'w') as f:
             f.write('# {} \n'.format(fname))
-            f.write('# Number of planets = {} \n'.format(len(self.planet_names)))
+            if hasattr(self,'planet_names'): f.write('# Number of planets = {} \n'.format(len(self.planet_names)))
             f.write('# Number of simulated observations = {} \n'.format(self.ndata))
             f.write('# Kernel used : {}, with parameters: {} \n'.format(self.kernel,self.kernel_parameters))
             f.write('# Random number seed = {} \n'.format(self.seed))
