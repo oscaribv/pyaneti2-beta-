@@ -163,8 +163,8 @@ def plot_rv_timeseries():
                 plot_labels_rv = [
                     rv_xlabel[o*ns:(o+1)*ns], rv_labels[o], rv_res[o]]
             #The mvec[:-1] is to ignore the extra dimension added to create the variance of the P
-            create_nice_plot(mvec[:-1], rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
-                             plot_residuals=True, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha,colors=rv_colors)
+            create_nice_plot(mvec[:-1], rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname, std_model=mvec[-1],
+                             plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha,colors=rv_colors)
     else:
         rv_dvec = [xdata, ydata, edata, ejdata, res, tlab]
         plot_labels_rv = [rv_xlabel, 'RV (m/s)', 'Residuals (m/s)']
@@ -252,4 +252,4 @@ def plot_rv_phasefolded():
         fmt='%4.8f  %4.8f  %4.8f  %4.8f  %4.8f  %i')
         np.savetxt(fname[:-4]+'-model.dat',rv_mvec.T,header='phase rv_planet'+plabels[i]+'(m/s)',fmt='%4.8f  %8.8f')
         create_nice_plot(rv_mvec, rv_dvec, plot_labels_rv,
-                         model_labels, tellabs, fname)
+                         model_labels, tellabs, fname,colors=rv_colors)

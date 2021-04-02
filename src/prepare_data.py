@@ -297,9 +297,9 @@ if n_cad.__class__ == int or t_cad.__class__ == float:
         t_cad = t_cad
 
 #Let us make the code complatible with the old pyaneti files that include is_den_a
-if is_den_a == bool:
+if is_den_a:
     sample_stellar_density = is_den_a
 
-if (sample_stellar_density):  # For a multiplanet system the density has to be the same
+if sample_stellar_density:  # For a multiplanet system the density has to be the same
         for o in range(1, nplanets):
             fit_a[o] = 'f'

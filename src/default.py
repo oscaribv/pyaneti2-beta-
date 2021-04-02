@@ -92,7 +92,7 @@ is_b_factor = True
 # are calculated from the fitted stellar density
 #is_den_a is not depreciated, new varialbe is
 sample_stellar_density = False
-is_den_a = None
+is_den_a = False
 # If True, the code sample for log10(k) instead of K
 is_log_k = False
 # NOT WORK NOW! If True, the code sample for log10(v0) instead of v0
