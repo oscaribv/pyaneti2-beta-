@@ -29,9 +29,9 @@ def create_folded_tr_plots():
 
                 #compute the models only for the current label
                 indices = m == np.asarray(trlab)
-                localx = lc_time[indices]
-                localy = lc_flux[indices]
-                locale = lc_errs[indices]
+                localx = megax[indices]
+                localy = megay[indices]
+                locale = megae[indices]
                 localt = np.zeros(len(localx),dtype=int)
 
                 try:
@@ -97,13 +97,13 @@ def fancy_tr_plot(tr_vector, pnumber):
             plt.errorbar(-x_lim*(0.95), min(yflux[m]-deltay), eflux[m]
                          [0], color=local_color, ms=7, fmt=mark_tr[m], alpha=1.0)
             plt.annotate(
-                'Error bar \n'+bands[m], xy=(-x_lim*(0.70), min(yflux[m]-deltay)), fontsize=fos*0.7)
+                'Error bar '+bands[m], xy=(-x_lim*(0.70), min(yflux[m]-deltay)), fontsize=fos*0.7)
             if plot_binned_data:
                 tbin = 10./60.
                 xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
                 plt.plot(xbined, fbined-deltay, 'o',color=tr_colors[m])
             if (m < nbands - 1):
-                dy =  5*max(np.std(res_res[m]),np.std(res_res[m+1]))   #max(yflux[m+1])-min(yflux[m+1])
+                dy = max(yflux[m+1])-min(yflux[m+1])
             deltay = deltay + dy
 
         # save the data
@@ -142,7 +142,6 @@ def fancy_tr_plot(tr_vector, pnumber):
     deltay = 0.
     dy = 0.
     for m in range(nbands):
-        plt.plot([x_lim, -x_lim], [-deltay, -deltay], 'k--', linewidth=1.0, alpha=1.0)
         if (plot_tr_errorbars):
             plt.errorbar((xmodel_res[m]-local_T0)*tfc, res_res[m]
                          * 1e6, eflux[m]*1e6, fmt='.', alpha=0.5)
@@ -157,14 +156,16 @@ def fancy_tr_plot(tr_vector, pnumber):
                 xbined, fbined, rbined = bin_data(xtime[m]*tfc,yflux[m],res_res[m]*1e6,tbin)
                 plt.plot(xbined,rbined-deltay,'o',color=tr_colors[m])
             if (m < nbands - 1):
-                dy = 6*max(np.std(res_res[m]),np.std(res_res[m+1]))
+                dy = max(res_res[m])-min(res_res[m])
                 dy = dy*1e6
             deltay = deltay + dy
+    #plt.plot([x_lim, -x_lim], [0.0, 0.0], 'k--', linewidth=1.0, alpha=1.0)
     plt.xticks(np.arange(-mxv, mxv+step_plot, step_plot))
     plt.xlim(x_lim, -x_lim)
-    #yylims = ax0.get_ylim()
-    #miy = (max(abs(yylims[0]), abs(yylims[1])))
-    #plt.yticks(range(-int(miy), 5*np.std(res_res[0]), int(miy/2.)))
+    yylims = ax0.get_ylim()
+    miy = (max(abs(yylims[0]), abs(yylims[1])))
+    plt.yticks(range(-int(miy), int(miy), int(miy/2.)))
+    #plt.ylim(-miy, miy)
     # Calcualte the rms
     if (is_plot_std_tr):
         trsigma = np.std(res_res*1e6, ddof=1)
@@ -279,8 +280,8 @@ def plot_all_transits():
 
     # Create the plot of the whole light
     model_flux = pti.flux_tr(
-        lc_time, [0]*len(lc_time), pars_tr, rp_val, my_ldc, n_cad, t_cad)
-    res_flux = lc_flux - model_flux
+        megax, [0]*len(megax), pars_tr, rp_val, my_ldc, n_cad, t_cad)
+    res_flux = megay - model_flux
 
     for i in range(0, nplanets):
         if (fit_tr[i]):
@@ -290,9 +291,9 @@ def plot_all_transits():
                 dy = max(yflux[m+1])-min(yflux[m+1])
 
             xt, dt, yt, et = create_transit_data(
-                lc_time, lc_flux, lc_errs, i, span_tr[i])
+                megax, megay, megae, i, span_tr[i])
             xt2, dt2, yt2, et2 = create_transit_data(
-                lc_time, res_flux, lc_errs, i, span_tr[i])
+                megax, res_flux, megae, i, span_tr[i])
 
             if (is_plot_all_tr[i]):
                 for j in range(0, len(xt)):
@@ -315,22 +316,22 @@ def plot_lightcurve_timeseries():
 
     # Here I need to create a special trlab in order to separate the different colors
     # Now let us imagine that it works with 1-band
-    xmodel = np.arange(min(lc_time), max(lc_time), 5./60./24.)
+    xmodel = np.arange(min(megax), max(megax), 5./60./24.)
     my_trlab = [0]*len(xmodel)
     ymodel = pti.flux_tr(xmodel, my_trlab, pars_tr.transpose(),
                          rp_val, my_ldc, n_cad, t_cad, nradius)
     #ymodel = pti.flux_tr(xmodel,my_trlab,pars_tr,rp_val,my_ldc,n_cad,t_cad)
 
     # Calcualte the residuals
-    trres = pti.flux_tr(lc_time, trlab, pars_tr.transpose(),
+    trres = pti.flux_tr(megax, trlab, pars_tr.transpose(),
                         rp_val, my_ldc, n_cad, t_cad, nradius)
-    trres = lc_flux - trres
+    trres = megay - trres
 
     # are we plotting a GP together with the RV curve
     if kernel_tr[0:2] != 'No':
-        xvec = lc_time
-        yvec = lc_flux
-        evec = lc_errs
+        xvec = megax
+        yvec = megay
+        evec = megae
         m, C = pti.pred_gp(kernel_tr, pk_tr, xvec, trres,
                            evec, xmodel, jtr, jtrlab)
         tr_mvec = [xmodel, ymodel, 1.+m, (ymodel+m)]
@@ -348,9 +349,9 @@ def plot_lightcurve_timeseries():
 
 
     indices = abs(trres) < ( np.mean(trres) + 5*np.std(trres) )
-    x_c = lc_time[indices]
-    y_c = lc_flux[indices]
-    e_c = lc_errs[indices]
+    x_c = megax[indices]
+    y_c = megay[indices]
+    e_c = megae[indices]
     r_c = trres[indices]
     local_trlab = np.asarray(trlab)
     t_c = local_trlab[indices]
@@ -368,8 +369,8 @@ def plot_lightcurve_timeseries():
 
     # Name of plot file
     fname = outdir+'/'+star+'_lightcurve.pdf'
-    tr_dvec = np.asarray([lc_time, lc_flux, lc_errs, lc_errs, trres, trlab],dtype=object)
-    plot_labels_tr = [tr_xlabel, 'Flux', 'Residuals']
+    tr_dvec = np.asarray([megax, megay, megae, megae, trres, trlab],dtype=object)
+    plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
                      plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha)

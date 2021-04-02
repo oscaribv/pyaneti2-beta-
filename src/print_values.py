@@ -55,9 +55,9 @@ vsini = np.random.normal(
 # Calculate the BIC
 ndata = 0
 if (total_rv_fit):
-    ndata = ndata + len(rv_vals)
+    ndata = ndata + len(mega_rv)
 if (total_tr_fit):
-    ndata = ndata + len(lc_time)
+    ndata = ndata + len(megax)
 
 npars = 0
 
@@ -76,7 +76,7 @@ for o in range(0, len(params)):
     dummy_pars[o] = best_value(params[o], maxloglike, get_value)
 
 log_like_total, chi2tot_val_rv, chi2tot_val_tr = \
-    pti.get_loglike(rv_time, rv_vals, lc_time, lc_flux, rv_errs, lc_errs,
+    pti.get_loglike(mega_time, mega_rv, megax, megay, mega_err, megae,
                     tlab, jrvlab, trlab, jtrlab, total_fit_flag, flags, kernels,
                     dummy_pars[4:], model_int, model_double)
 
@@ -132,8 +132,8 @@ if (method == 'mcmc' or method == 'plot'):
     opars.write('N_chains         = %8i \n' % nwalkers)
     opars.write('N_iter           = %8i \n' % nconv)
     opars.write('thin_factor      = %8i \n' % thin_factor)
-    opars.write('N_rv_data        = %8i \n' % len(rv_time))
-    opars.write('N_tr_data        = %8i \n' % len(lc_time))
+    opars.write('N_rv_data        = %8i \n' % len(mega_time))
+    opars.write('N_tr_data        = %8i \n' % len(megax))
     opars.write('N_data           = %8i \n' % ndata)
     opars.write('N_pars           = %8i \n' % npars)
     opars.write('chi2_rv          = %4.4f\n' % (chi2tot_val_rv))
@@ -188,7 +188,7 @@ if (method == 'mcmc' or method == 'plot'):
 
         if (is_log_P):
             P_vec[o] = 10.0**(P_vec[o])
-        if (sample_stellar_density):
+        if (is_den_a):
             if (o == 0):
                 miden = list(params[base+5])
             for m in range(0, len(miden)):
@@ -269,7 +269,7 @@ if (method == 'mcmc' or method == 'plot'):
                 pars = [Tpe_vec[o][m], P_vec[o][m], e_vec[o][m], w_vec[o][m], i_vec[o][m], ar_vec[o][m]]
                 # This works for a single planet and for a single band
                 rplanet = np.mean(rr_vec[o][m])
-                tiempo = np.arange(min(lc_time), max( lc_time), 1./60./24.)  # minute precision
+                tiempo = np.arange(min(megax), max( megax), 1./60./24.)  # minute precision
                 z_vec[m] = pti.find_z(tiempo, pars)
                 # Z contains is the vector containing the distance between the star and planet centres in stellar radius units
                 tr_index = z_vec[m] < 1 + rplanet
@@ -386,7 +386,7 @@ if (method == 'mcmc' or method == 'plot'):
             print_values(w_vec[o]*180./np.pi, 'w', 'w'+pl, 'deg', 'deg')
         if (fit_tr[o]):
             print_values(b_vec[o], 'b', 'b'+pl, ' ', ' ')
-            if (sample_stellar_density):
+            if (is_den_a):
                 if (o == 0):
                     print_values(params[base+5], 'rho*^1/3', 'dentrhee'+pl,
                                  'g^{1/3}/cm', '${\\rm g^{1/3}\,cm^{-1}}$')
@@ -413,7 +413,7 @@ if (method == 'mcmc' or method == 'plot'):
             print_values(w_vec[o]*180./np.pi, 'w', 'w'+pl, 'deg', 'deg')
         if (fit_tr[o]):
             print_values(i_vec[o]*180./np.pi, 'i', 'i'+pl, 'deg', 'deg')
-            if (sample_stellar_density):
+            if (is_den_a):
                 print_values(ar_vec[o], 'a/R*', 'ar'+pl, ' ', ' ')
             print_values(a_vec[o], 'a', 'a'+pl, 'AU', 'AU')
             for m in range(0, nradius):
@@ -524,8 +524,8 @@ for o in range(0, np_tr):
 #  for o in range(0,len(et)):
 #      for m in range(0,len(et[o])):
 #              et[o][m] = np.sqrt(et[o][m]**2 + jit_tr**2)
-#  for o in range(0,len(lc_errs)):
-#    lc_errs[o] = np.sqrt( lc_errs[o]**2 + jit_tr**2)
+#  for o in range(0,len(megae)):
+#    megae[o] = np.sqrt( megae[o]**2 + jit_tr**2)
 
 if (total_rv_fit):
     new_errs_all = [None]*len(errs_all)

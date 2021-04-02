@@ -221,7 +221,7 @@ if (is_b_factor):
     ilab = 'b'
 if (is_log_k):
     klab = '$\log_{10} K$'
-if (sample_stellar_density):
+if (is_den_a):
     alab = '$\\rho_{\star}$'
 # planet parameter labels
 for o in range(0, nplanets):

@@ -462,17 +462,8 @@ implicit none
       call jeffreys_prior(lims(2*j),lims(2*j+1),pars_in(j),priors_out(j))
     else if ( fit_pars(j) == 'm' ) then
       call modjeffreys_prior(lims(2*j),lims(2*j+1),pars_in(j),priors_out(j))
-    else if ( fit_pars(j) == 'n' ) then
-      call modjeffreys_prior(lims(2*j),lims(2*j+1),pars_in(j),priors_out(j))
-    !This prior creates an offset between two RVs timeseries
-    else if ( fit_pars(j) == 'o' ) then
-      call gauss_prior(pars_in(j-1)-15.4d-3,4.d-4,pars_in(j),priors_out(j))
-    else if ( fit_pars(j) == 'r' ) then
-      call uniform_prior_constant(0.d0,1.d0+pars_in(j+3),pars_in(j),priors_out(j))
     else if ( fit_pars(j) == 'b' ) then
       call beta_prior(lims(2*j),lims(2*j+1),pars_in(j),priors_out(j))
-    else if ( fit_pars(j) == 't' ) then !This sets a uniform prior between T0 - P/3 and T0 + P/3
-      call uniform_prior_constant(pars_in(j)-pars_in(j+1)/3,pars_in(j)+pars_in(j+1)/3,pars_in(j),priors_out(j))
     else
       print*, 'The prior ', fit_pars(j), ' has not been defined in get_priors'
       stop

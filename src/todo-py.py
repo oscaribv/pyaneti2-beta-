@@ -333,7 +333,7 @@ def good_clustering_likelihood(pos, nconv, nwalkers):
     for m,i in enumerate(sorted_indices):
         otros = i != sorted_indices
         otros[0:m] = False
-        otros_walkers = np.mean(pos_mean[otros]) - 1*np.std(pos_mean[otros])
+        otros_walkers = np.mean(pos_mean[otros]) - 3*np.std(pos_mean[otros])
         if (pos_mean[i] > otros_walkers):
             # We are saving the good chain labels
             good_chain.append(i)
@@ -465,7 +465,7 @@ def joint_fit():
     # Let us check what do we want to fit
     total_fit_flag = [total_rv_fit, total_tr_fit]
 
-    flags = [is_log_P, is_ew, is_b_factor, sample_stellar_density, is_log_k, is_log_rv0]
+    flags = [is_log_P, is_ew, is_b_factor, is_den_a, is_log_k, is_log_rv0]
 
     # Parameter priors
     pars_prior_flag = [None]*7*nplanets
@@ -512,9 +512,7 @@ def joint_fit():
     if is_jitter_rv:
         jrv_prior_flag = ['m']*n_jrv
         jrv_prior_vals = [1e-3,1]*n_jrv
-        if method == 'optimize':
-            jrv_prior_flag = ['u']*n_jrv
-            jrv_prior_vals = [0.0, 0.05]*n_jrv
+        #jrv_prior_vals = [0.0, 0.05]*n_jrv
     else:
         jrv_prior_flag = ['f']*n_jrv
         jrv_prior_vals = [0., 0.5]*n_jrv
@@ -526,8 +524,8 @@ def joint_fit():
             jtr_prior_vals = [1e-3, 1.e-2]*n_jtr
     else:
         n_jtr = 0
-        trlab = [0]*len(lc_time)
-        jtrlab = [0]*len(lc_time)
+        trlab = [0]*len(megax)
+        jtrlab = [0]*len(megax)
         jtr_prior_flag = ['u']*n_jtr
         jtr_prior_vals = [0., 1.e-3]*n_jtr
 
@@ -618,50 +616,6 @@ def joint_fit():
     model_int = np.concatenate([model_int, n_cad])
     model_double = t_cad
 
-
-    # Define the labels to be used in the plots
-    labs = []
-    elab = 'e'
-    wlab = 'omega'
-    ilab = 'i'
-    klab = 'k'
-    alab = 'arstar'
-    if (is_ew):
-        elab = 'esinomega'
-        wlab = 'ecosomega'
-    if (is_b_factor):
-        ilab = 'b'
-    if (is_log_k):
-        klab = 'log10k'
-    if (sample_stellar_density):
-        alab = 'rhostar'
-    # planet parameter labels
-    for o in range(0, nplanets):
-        etiquetas = ['t0'+plabels[o], 'p'+plabels[o], elab+plabels[o],
-                     wlab+plabels[o], ilab+plabels[o], alab+plabels[o],
-                     klab+plabels[o]]
-        labs.append(etiquetas)
-    # planet radius labels
-    for o in range(0, nplanets):
-            for m in range(0, nradius):
-                labs.append(['rprstar'+plabels[o]+bands[m]])
-# LDC labels
-    for m in range(0, nbands):
-        labs.append(['q1'+bands[m], 'q2'+bands[m]])
-    # RV instrument labels
-    labs.append(telescopes_labels)
-    # jitter labels
-    for o in range(0, n_jrv):
-        labs.append(['rv_jitter'+str(telescopes_labels[o])])
-    for o in range(0, n_jtr):
-        labs.append(['vv_jitter'+str(bands[o])])
-    # trends labels
-    labs.append(['linear_trend'])
-    labs.append(['quadratic_trend'])
-    labs.append(krv_labels)
-    labs.append(ktr_labels)
-    # Total labels vector
-
     if (method == 'mcmc'):
 
         # Ensure nwalkers is divisible by 2
@@ -669,7 +623,7 @@ def joint_fit():
             nwalkers = nwalkers + 1
 
         pti.mcmc_stretch_move(
-            rv_time, rv_vals, lc_time, lc_flux, rv_errs, lc_errs,
+            mega_time, mega_rv, megax, megay, mega_err, megae,
             tlab, jrvlab, trlab, jtrlab,
             flags, total_fit_flag, prior_flags, prior_vals,
             kernels, model_int,
@@ -680,136 +634,77 @@ def joint_fit():
         data = np.loadtxt('all_data.dat',unpack=True)
         np.savetxt('all_data.dat',data.T,delimiter=',',fmt='%1.12e')
 
-        newfile = outdir+'/'+star+'_all_data.dat'
-        if (os.path.isfile('all_data.dat')):
-            os.rename('all_data.dat', newfile)
-
-            def line_prepender(filename, text):
-              with open(filename, 'r+') as f:
-                    content = f.read()
-                    f.seek(0, 0)
-                    for o in range(len(text)):
-                        f.write(text[o]+'   ')
-                    f.write('\n' + content)
-
-            labels = np.concatenate([['#i'], ['log_posterior'], ['chi2_rv'], [
-                                    'chi2_tr'], np.concatenate(labs)])
-            line_prepender(newfile, labels)
-#
     elif (method == 'plot'):
         print('I will only print the values and generate the plot')
-        newfile = outdir+'/'+star+'_all_data.dat'
-
-    elif (method == 'optimize'):
-        from scipy.optimize import minimize
-        #Let us use the log likelihood function that comes into pyaneti in order to fit the data using pyhon optmize
-        #Define a python function that is a wrapper between the fortran function that can be used in optimize
-
-        print('Performing optimization using scipy.optimize.minimize')
-
-        def get_neg_loglike_python(pars,t_rv,rvs,t_tr,tr,e_rv,e_tr,
-                               rvlab,jrvlab,trlab,jtrlab,tff,flags,kernels,
-                               model_int,model_double,indices,prior_flags,prior_vals):
-
-            #this creates a random value for the whole set of pars, we do not want this, but we use it so
-            #all the fixed values are assiged to the corresponding parameters
-            pars_total = pti.create_chains(prior_flags,prior_vals)
-            #let us use indices to add the proposed pars values for minimize
-            #this will add the correct values to the indices of pars_total
-            pars_total[indices] = pars
-            #Now pars_total can be used the compute the likelihood with pyaneti and
-            #we took care of avoid fitting the fixing values
-
-            #Call the Fortran subroutine as needed
-            log_like, chi2_rv, chi2_tr = pti.get_loglike(t_rv,rvs,t_tr,tr,e_rv,e_tr,
-            rvlab,jrvlab,trlab,jtrlab,tff,flags,kernels,pars_total,model_int,model_double)
-
-            return - log_like
-
-        #I need to think what to do when we are fixing a parameter, because this has not to be passed to minimize
-        def pars_for_optimize(prior_flags,prior_vals):
-
-            #If we are using a Gaussian prior flag, we may create problems for the bounds in minimize
-            if any(prior_flags == 'g') or any(prior_flags == 'm'):
-                print('You are using the optimize method in pyaneti, you should be fixing parameters or give only bound limits for your values')
-                sys.exit()
-
-            #Create a random initialization of the pars vector
-            pars_total = pti.create_chains(prior_flags,prior_vals)
-            #Now we have a random inizialization of our parameter vector to be used in optimize
-            #Let us find the places where we are NOT fixing the values
-            indices = prior_flags != 'f'
-            #Let us return an array with the elements that we only want to fit
-            pars = pars_total[indices]
-
-            #We also need to create the bound vectors
-            bounds   = []
-            loc_labs = []
-            concatenate_labs = np.concatenate(labs)
-            for i,p in enumerate(prior_flags):
-                if p != 'f':
-                    bounds.append((prior_vals[i*2],prior_vals[i*2+1]))
-                    loc_labs.append(concatenate_labs[i])
-
-            return pars, indices, bounds, loc_labs
-
-
-        success = False
-        while success == False:
-            #We have to create a vector with the pars to pass to get_neg_loglike_python
-            #Create vectors needed to pass to optimize
-            pars, indices, bounds, loc_labs = pars_for_optimize(prior_flags,prior_vals)
-            #Run the minimization
-            ftol = 1.e-10
-            res = minimize(get_neg_loglike_python,pars,args=(rv_time,rv_vals,lc_time,lc_flux,rv_err ,lc_errs,
-                                                                tlab,jrvlab,trlab,jtrlab,total_fit_flag,flags,kernels,
-                                                                model_int,model_double,indices,prior_flags,prior_vals),
-                                                                bounds=bounds,method='L-BFGS-B',tol=ftol)
-
-            success = res.success
-
-
-        #errors from Hessian from https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
-        tmp_i   = np.zeros(len(res.x))
-        errores = np.zeros(len(res.x))
-        #Fill the errores vector
-        for i in range(len(res.x)):
-            tmp_i[i] = 1.0
-            hess_inv_i = res.hess_inv(tmp_i)[i]
-            tmp_i[i] = 0.0
-            errores[i] = np.sqrt(max(1, abs(res.fun)) * ftol * hess_inv_i)
-
-        #Let us prepare everything to save the results in a output file
-        #To save all the pyaneti parameters, let us use the create_chains trick we used before
-        all_pars = pti.create_chains(prior_flags,prior_vals)
-        all_errs = np.zeros(len(all_pars))
-        #Now let us overwrite the values that were found by optimize.mininize
-        all_pars[indices] = res.x
-        all_errs[indices] = errores
-
-        #Save all the stuff
-        newfile  = outdir+'/'+star+'_all_data.dat'
-        my_labs = np.concatenate(labs)
-        with open(newfile,'w') as f:
-            f.write('#')
-            for i in range(len(my_labs)):
-                f.write('{},'.format(my_labs[i]))
-            f.write('\n')
-            for i in range(len(all_pars)):
-                f.write('{},'.format(all_pars[i]))
-            f.write('\n')
-            for i in range(len(all_errs)):
-                f.write('{},'.format(all_errs[i]))
-
-        sys.exit()
 
     else:
         print('You did not choose a method!')
-        print('method = mcmc     -> Run the MCMC code')
-        print('method = optimize -> Run the optimization code')
-        print('method = plot    -> Plot of a previous MCMC run')
+        print('method = mcmc   -> Run the MCMC code')
+        print('method = plot   -> Plot of a previous run')
         sys.exit('choose your favorite.')
 
+
+
+#
+    newfile = outdir+'/'+star+'_all_data.dat'
+    if (os.path.isfile('all_data.dat')):
+        os.rename('all_data.dat', newfile)
+
+        # Define the labels to be used in the plots
+        labs = []
+        elab = 'e'
+        wlab = 'omega'
+        ilab = 'i'
+        klab = 'k'
+        alab = 'arstar'
+        if (is_ew):
+            elab = 'esinomega'
+            wlab = 'ecosomega'
+        if (is_b_factor):
+            ilab = 'b'
+        if (is_log_k):
+            klab = 'log10k'
+        if (is_den_a):
+            alab = 'rhostar'
+        # planet parameter labels
+        for o in range(0, nplanets):
+            etiquetas = ['t0'+plabels[o], 'p'+plabels[o], elab+plabels[o],
+                         wlab+plabels[o], ilab+plabels[o], alab+plabels[o],
+                         klab+plabels[o]]
+            labs.append(etiquetas)
+        # planet radius labels
+        for o in range(0, nplanets):
+            for m in range(0, nradius):
+                labs.append(['rprstar'+plabels[o]+bands[m]])
+        # LDC labels
+        for m in range(0, nbands):
+            labs.append(['q1'+bands[m], 'q2'+bands[m]])
+        # RV instrument labels
+        labs.append(telescopes_labels)
+        # jitter labels
+        for o in range(0, n_jrv):
+            labs.append(['rv_jitter'+str(telescopes_labels[o])])
+        for o in range(0, n_jtr):
+            labs.append(['vv_jitter'+str(bands[o])])
+        # trends labels
+        labs.append(['linear_trend'])
+        labs.append(['quadratic_trend'])
+        labs.append(krv_labels)
+        labs.append(ktr_labels)
+        # Total labels vector
+
+        def line_prepender(filename, text):
+            with open(filename, 'r+') as f:
+                content = f.read()
+                f.seek(0, 0)
+                for o in range(len(text)):
+                    f.write(text[o]+'   ')
+                f.write('\n' + content)
+
+        labels = np.concatenate([['#i'], ['log_posterior'], ['chi2_rv'], [
+                                'chi2_tr'], np.concatenate(labs)])
+        line_prepender(newfile, labels)
+#
 
 # -----------------------------------------------------------
 #          PRINT INITIAL CONFIGURATION

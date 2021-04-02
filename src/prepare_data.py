@@ -1,27 +1,12 @@
 # -----------------------------------------------------------
-#                    prepare_data.py
+#                       prepare_data.py
 #  This file contains all the variable initializations,
-#           both for RV and Transit fittings.
-#              O. Barragan, March 2016
-#          O. Barragan, Modified April 2021
+#  both for RV and Transit fittings.
+#                   O. Barragan, March 2016
 # -----------------------------------------------------------
 
 nconv = niter
 nwalkers = nchains
-
-
-# -----------------------------------------------------------
-#Print errors if something will make the code crash,
-#before it crashes
-
-#Avoid crash when not all planets are specified in the fit_rv and fit_tr vectors
-if len(fit_rv) < nplanets:
-    print("fit_rv does not match the number of planets, check your input file")
-    sys.exit()
-if len(fit_tr) < nplanets:
-    print("fit_tr does not match the number of planets, check your input file")
-    sys.exit()
-
 
 # -----------------------------------------------------------
 #                         RV DATA
@@ -49,8 +34,7 @@ if (nplanets_rv > 0):
                                      comments='#', unpack=True)
         tspe = ['0']*len(time)
         telescopes = ['0']
-        telescopes_labels = ['RV data']
-
+        telescopes_labels = ['0']
     if (is_special_jitter):
         sjitter = np.loadtxt(
             'inpy/'+star+'/'+fname_rv[0], usecols=(4), dtype=str, unpack=True)
@@ -87,9 +71,9 @@ if (nplanets_rv > 0):
     # The mega* variables contains all the data
     # All this is neccesary because you do not have
     # the same number of data for each telescope
-    rv_vals = []
-    rv_time = []
-    rv_errs = []
+    mega_rv = []
+    mega_time = []
+    mega_err = []
     tlab = []
     jrvlab = []
     # create mega with data of all telescopes
@@ -101,9 +85,9 @@ if (nplanets_rv > 0):
             # this is useful because matches with the index of
             # the mega variables
             tlab.append(i)
-            rv_vals.append(rv_all[i][j])
-            rv_time.append(time_all[i][j])
-            rv_errs.append(errs_all[i][j])
+            mega_rv.append(rv_all[i][j])
+            mega_time.append(time_all[i][j])
+            mega_err.append(errs_all[i][j])
 
     if (is_special_jitter):
         n_jrv = len(jrvvec)
@@ -119,20 +103,20 @@ if (nplanets_rv > 0):
     total_rv_fit = True
 
     if bin_rv > 0:
-        rv_time, rv_vals, rv_errs = bin_data(rv_time, rv_vals, rv_errs, bin_rv)
+        mega_time, mega_rv, mega_err = bin_data(mega_time, mega_rv, mega_err, bin_rv)
         nbands = 1
         nradius = 1
-        tlab = [0]*len(rv_time)
-        jrvlab = [0]*len(rv_time)
+        tlab = [0]*len(mega_time)
+        jrvlab = [0]*len(mega_time)
 
 else:
     n_jrv = 1
     nt = 1
     tlab = [0]
     jrvlab = list(tlab)
-    rv_vals = [None]
-    rv_time = [None]
-    rv_errs = [None]
+    mega_rv = [None]
+    mega_time = [None]
+    mega_err = [None]
     total_rv_fit = False
     is_jitter_rv = False
 
@@ -183,17 +167,17 @@ if (nplanets_tr > 0):
     # Let us put together the information of all the arrays
     # the mega* lists have the data of all the transits
     # in 1D array
-    lc_time = np.concatenate(xt)
-    lc_flux = np.concatenate(yt)
-    lc_errs = np.concatenate(et)
-    megap = [0]*len(lc_time)
+    megax = np.concatenate(xt)
+    megay = np.concatenate(yt)
+    megae = np.concatenate(et)
+    megap = [0]*len(megax)
 
     # Create the label vectors for each instrument and jitter
     if (len(bands) == 1):
         nbands = 1
         nradius = 1
-        trlab = [0]*len(lc_time)
-        jtrlab = [0]*len(lc_time)
+        trlab = [0]*len(megax)
+        jtrlab = [0]*len(megax)
     else:
         trlab = []
         jtrlab = []
@@ -202,7 +186,7 @@ if (nplanets_tr > 0):
         if is_multi_radius:
             nradius = nbands
         instrument = np.loadtxt(filename, usecols=[3], dtype=str, unpack=True)
-        for o in range(0, len(lc_time)):
+        for o in range(0, len(megax)):
             for m in range(0, nbands):
                 if (instrument[o] == bands[m]):
                     trlab.append(m)
@@ -213,16 +197,16 @@ if (nplanets_tr > 0):
     total_tr_fit = True
 
     if bin_lc > 0:
-        lc_time, lc_flux, lc_errs = bin_data(lc_time, lc_flux, lc_errs, bin_lc)
+        megax, megay, megae = bin_data(megax, megay, megae, bin_lc)
         nbands = 1
         nradius = 1
-        trlab = [0]*len(lc_time)
-        jtrlab = [0]*len(lc_time)
+        trlab = [0]*len(megax)
+        jtrlab = [0]*len(megax)
 
 else:
-    lc_time = [1.]
-    lc_flux = [1.]
-    lc_errs = [1.]
+    megax = [1.]
+    megay = [1.]
+    megae = [1.]
     megap = [0]
     total_tr_fit = False
     is_jitter_tr = False
@@ -263,7 +247,7 @@ for o in range(0, nplanets):
 if is_single_transit:
     for o in range(0, nplanets):
         fit_P[o] = 'f'
-        min_P[o] = 10*(max(lc_time)-min(lc_time))
+        min_P[o] = 10*(max(megax)-min(megax))
         fit_a[o] = 'u'
         min_a[o] = 1.1
         max_a[o] = 1e3
@@ -312,11 +296,7 @@ if n_cad.__class__ == int or t_cad.__class__ == float:
         n_cad = n_cad
         t_cad = t_cad
 
-#Ensure compatibility with old versions of pyaneti when calling is_den_a
-if is_den_a == bool:
-    sample_stellar_density = is_den_a
-
-if (sample_stellar_density):  # For a multiplanet system the density has to be the same
+if (is_den_a):  # For a multiplanet system the density has to be the same
     if (nplanets > 1):
         for o in range(1, nplanets):
             fit_a[o] = 'f'

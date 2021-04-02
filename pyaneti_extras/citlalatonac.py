@@ -1,7 +1,7 @@
 ################################################################################
 #                              citlalatonac.py                                 #
 #   Citlalatonac is the name of the Aztec god who created the stars            #
-#                           Oscar Barragan, 2021                               #
+#                           Oscar Barragan, March 2021                         #
 ################################################################################
 
 import numpy as np
@@ -17,7 +17,7 @@ from matplotlib import gridspec
 sns.set(style='ticks')
 sns.set_color_codes('deep')
 
-#Details of the black magic here -> https://astroplan.readthedocs.io/en/latest/tutorials/summer_triangle.html
+#Details on how astroplan works here -> https://astroplan.readthedocs.io/en/latest/tutorials/summer_triangle.html
 from astroplan import Observer
 from astropy.coordinates import SkyCoord
 from astroplan import FixedTarget
