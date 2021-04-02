@@ -188,7 +188,7 @@ if (method == 'mcmc' or method == 'plot'):
 
         if (is_log_P):
             P_vec[o] = 10.0**(P_vec[o])
-        if (is_den_a):
+        if (sample_stellar_density):
             if (o == 0):
                 miden = list(params[base+5])
             for m in range(0, len(miden)):
@@ -386,7 +386,7 @@ if (method == 'mcmc' or method == 'plot'):
             print_values(w_vec[o]*180./np.pi, 'w', 'w'+pl, 'deg', 'deg')
         if (fit_tr[o]):
             print_values(b_vec[o], 'b', 'b'+pl, ' ', ' ')
-            if (is_den_a):
+            if (sample_stellar_density):
                 if (o == 0):
                     print_values(params[base+5], 'rho*^1/3', 'dentrhee'+pl,
                                  'g^{1/3}/cm', '${\\rm g^{1/3}\,cm^{-1}}$')
@@ -413,7 +413,7 @@ if (method == 'mcmc' or method == 'plot'):
             print_values(w_vec[o]*180./np.pi, 'w', 'w'+pl, 'deg', 'deg')
         if (fit_tr[o]):
             print_values(i_vec[o]*180./np.pi, 'i', 'i'+pl, 'deg', 'deg')
-            if (is_den_a):
+            if (sample_stellar_density):
                 print_values(ar_vec[o], 'a/R*', 'ar'+pl, ' ', ' ')
             print_values(a_vec[o], 'a', 'a'+pl, 'AU', 'AU')
             for m in range(0, nradius):

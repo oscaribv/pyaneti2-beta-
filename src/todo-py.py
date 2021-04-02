@@ -465,7 +465,7 @@ def joint_fit():
     # Let us check what do we want to fit
     total_fit_flag = [total_rv_fit, total_tr_fit]
 
-    flags = [is_log_P, is_ew, is_b_factor, is_den_a, is_log_k, is_log_rv0]
+    flags = [is_log_P, is_ew, is_b_factor, sample_stellar_density, is_log_k, is_log_rv0]
 
     # Parameter priors
     pars_prior_flag = [None]*7*nplanets
@@ -664,7 +664,7 @@ def joint_fit():
             ilab = 'b'
         if (is_log_k):
             klab = 'log10k'
-        if (is_den_a):
+        if (sample_stellar_density):
             alab = 'rhostar'
         # planet parameter labels
         for o in range(0, nplanets):

@@ -89,8 +89,10 @@ is_b_factor = True
 # If True, the code sample for the stellar density to the 1/3 power (rho^{1/3})
 # instead of scaled semi major axis
 # for multiplanet fits, it fits, the scaled semi-major axis of all fitted planets
-# are calculated from the fitted rho^{1/3}
-is_den_a = False
+# are calculated from the fitted stellar density
+#is_den_a is not depreciated, new varialbe is
+sample_stellar_density = False
+is_den_a = None
 # If True, the code sample for log10(k) instead of K
 is_log_k = False
 # NOT WORK NOW! If True, the code sample for log10(v0) instead of v0
@@ -297,7 +299,7 @@ sigma_clean = 10
 # Label to appear in the timeseries plot of the light curve
 tr_xlabel = "BJD - 2450000 (days)"
 
-tr_colors = ['r', 'b', 'g', 'k', 'y', '#ffbf00', '#ff1493']
+tr_colors = ['#006341','#CE1126', 'b', 'k', 'y', '#ffbf00', '#ff1493']
 
 # RV PLOTS
 # If True it plots percentiles in the phase pholded RV plot
@@ -329,7 +331,7 @@ mark = ['o', 'D', 's', 'p', 'h', '8', '^',
 mark_tr = ['o', 'D', 's', 'p', 'h', '8', '^',
            '<', '*', 'v', '>', '.', 'H', 'd', '+']
 # Default colors for the different instruments of the RV plots
-rv_colors = ['#007fff', 'r', 'g', 'y', 'm', 'c']
+rv_colors = ['#00c400','#CE1126', 'b', 'y', 'k', '#ffbf00', '#ff1493']
 
 # marker size for the data points of the RV plot
 rv_markersize = 8
@@ -356,10 +358,6 @@ scale_error_bars = False
 # If True, it will check for clustering chains in order to remove lost chain in
 # local minima
 is_clustering = True
-# The clustering_delta parameter checks for a threshold from the median value of the chains
-# all chains with chi2/dof above median + 3*clustering_delta are rejected
-# BE WARE THAT a small value may reject converged chains in the local minima
-clustering_delta = 0.5
 
 # If True, the code creates authomatic priors for the RV offests
 # And also checks for maximum values for Rp/R*
