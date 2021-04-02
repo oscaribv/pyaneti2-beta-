@@ -373,4 +373,4 @@ def plot_lightcurve_timeseries():
     plot_labels_tr = [rv_xlabel, 'Flux', 'Residuals']
     # Create the RV timeseries plot
     create_nice_plot(tr_mvec, tr_dvec, plot_labels_tr, model_labels, bands, fname,
-                     plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha)
+                     plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha,colors=tr_colors)

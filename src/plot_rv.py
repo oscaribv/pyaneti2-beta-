@@ -164,13 +164,13 @@ def plot_rv_timeseries():
                     rv_xlabel[o*ns:(o+1)*ns], rv_labels[o], rv_res[o]]
             #The mvec[:-1] is to ignore the extra dimension added to create the variance of the P
             create_nice_plot(mvec[:-1], rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
-                             plot_residuals=True, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha)
+                             plot_residuals=True, fsx=1.8*fsx, model_colors=mcolors, model_alpha=malpha,colors=rv_colors)
     else:
         rv_dvec = [xdata, ydata, edata, ejdata, res, tlab]
         plot_labels_rv = [rv_xlabel, 'RV (m/s)', 'Residuals (m/s)']
         # Create the RV timeseries plot
         create_nice_plot(rv_mvec, rv_dvec, plot_labels_rv, model_labels, telescopes_labels, fname,
-                         plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha)
+                         plot_residuals=False, fsx=2*fsx, model_colors=mcolors, model_alpha=malpha,colors=rv_colors)
 
     # Create residuals file
     of = open(out_f, 'w')

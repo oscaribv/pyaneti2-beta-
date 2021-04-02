@@ -301,6 +301,5 @@ if is_den_a == bool:
     sample_stellar_density = is_den_a
 
 if (sample_stellar_density):  # For a multiplanet system the density has to be the same
-    if (nplanets > 1):
         for o in range(1, nplanets):
             fit_a[o] = 'f'

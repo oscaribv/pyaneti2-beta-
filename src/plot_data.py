@@ -17,7 +17,7 @@ fos = font_size_label
 # secod plot is a tme series with residuals
 def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
                      fsx=fsx, fsy=fsy, plot_residuals=True,
-                     model_colors='k', model_alpha=1):
+                     model_colors='k', model_alpha=1,colors=['g','r','b']):
 
     print('Creating ', fname)
     #
@@ -62,22 +62,15 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
     for j in range(len(inst_labels)):
         indices = np.asarray(labvec) == j
         plt.errorbar(tdata[indices], ydata[indices], ejdata[indices], fmt='.',
-                     alpha=0.9, color='#C0C0C0', markersize=rv_markersize, fillstyle='none', zorder=1)
+                     alpha=0.3, color=colors[j], markersize=rv_markersize, fillstyle='none', zorder=1)
+#                     alpha=0.9, color='#C0C0C0', markersize=rv_markersize, fillstyle='none', zorder=1)
         # This one plots the legacy error bars
         plt.errorbar(tdata[indices], ydata[indices], edata[indices],
-                     fmt=mark[j], alpha=1.0, color=rv_colors[j],
+                     fmt=mark[j], alpha=1.0, color=colors[j],
                      markersize=rv_markersize, fillstyle=rv_fillstyle, zorder=2)
-#    for j in range(0, len(tdata)):
-#        # This one plots the jitter error bars
-#        plt.errorbar(tdata[j], ydata[j], ejdata[j], fmt='.',
-#                     alpha=0.9, color='#C0C0C0', markersize=rv_markersize, fillstyle='none', zorder=1)
-#        # This one plots the legacy error bars
-#        plt.errorbar(tdata[j], ydata[j], edata[j],
-#                     fmt=mark[labvec[j]], alpha=1.0, color=rv_colors[labvec[j]],
-#                     markersize=rv_markersize, fillstyle=rv_fillstyle, zorder=2)
     for j in range(0, len(inst_labels)):
         plt.errorbar(-1, np.mean(ydata), 1e-5, fmt=mark[j], label=inst_labels[j],
-                     alpha=1.0, color=rv_colors[j],
+                     alpha=1.0, color=colors[j],
                      markersize=rv_markersize, zorder=2)
     #
     if (is_rv_legend):
@@ -117,10 +110,11 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
         for j in range(len(inst_labels)):
             indices = np.asarray(labvec) == j
             plt.errorbar(tdata[indices], res[indices], ejdata[indices], fmt='.',
-                         alpha=0.9, color='#C0C0C0', markersize=rv_markersize, fillstyle='none', zorder=1)
+                         alpha=0.3, color=colors[j], markersize=rv_markersize, fillstyle='none', zorder=1)
+#                         alpha=0.9, color='#C0C0C0', markersize=rv_markersize, fillstyle='none', zorder=1)
             # This one plots the legacy error bars
             plt.errorbar(tdata[indices], res[indices], edata[indices],
-                         fmt=mark[j], alpha=1.0, color=rv_colors[j],
+                         fmt=mark[j], alpha=1.0, color=colors[j],
                          markersize=rv_markersize, fillstyle=rv_fillstyle, zorder=2)
 
         plt.plot([min(tmodel), max(tmodel)], [0., 0.],
