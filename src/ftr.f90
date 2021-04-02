@@ -181,7 +181,6 @@ implicit none
 
   end do
 
-
 end subroutine
 
 
@@ -242,7 +241,6 @@ implicit none
     end do
 
   end do
-
 
 end subroutine
 
