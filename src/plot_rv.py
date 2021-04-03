@@ -50,22 +50,22 @@ def plot_rv_timeseries():
         #ns = int((len(fit_krv) - 3)/2)
         ns = int(kernel_rv[2])
         # This vector contains all the timeseries (a TxN vector)
-        xvec = mega_time
+        xvec = rv_time
         # This vector contains the predicted timeseries for N cases
         rvx_tot = np.concatenate([rvx]*ns)
         # Let us create our vector with the residuals for the N timeseries
-        yvec = [None]*len(mega_rv)
+        yvec = [None]*len(rv_vals)
         # Our first chunk of timeseries is always the RV, in this case, we have to
         # Create the residuals once removed the planet signals
         yvec_noplanet = np.concatenate(rv_no_offset)
         yvec_planet = np.concatenate(rv_residuals)
         #The first elements of the array correspond to the GP, so we want the vector with no planets and no offset
-        for i in range(int(len(mega_rv)/ns)):
+        for i in range(int(len(rv_vals)/ns)):
             yvec[i] = yvec_planet[i]
         # Now, let us store the ancilliary data vectors, so we want to remove only the offsets
-        for i in range(int(len(mega_rv)/ns), int(len(mega_rv))):
+        for i in range(int(len(rv_vals)/ns), int(len(rv_vals))):
             yvec[i] = yvec_noplanet[i]
-        evec = mega_err
+        evec = rv_errs
         # Now, predict the GP for all the timeseries
         m, C = pti.pred_gp(kernel_rv, pk_rv, xvec, yvec,
                            evec, rvx_tot, jrv, jrvlab)
@@ -99,9 +99,9 @@ def plot_rv_timeseries():
             plot_vector[i] = [rvx, m[i*nts:(i+1)*nts]*cfactor,np.sqrt(np.matrix.diagonal(C[i*nts:(i+1)*nts,i*nts:(i+1)*nts]))*cfactor]
     # are we plotting a GP together with the RV curve
     elif kernel_rv[0:2] != 'No':
-        xvec = mega_time
+        xvec = rv_time
         yvec = np.concatenate(rv_residuals)
-        evec = mega_err
+        evec = rv_errs
         m, C = pti.pred_gp(kernel_rv, pk_rv, xvec,
                            yvec, evec, rvx, jrv, jrvlab)
         rv_mvec = [rvx, (rvy)*cfactor, m*cfactor, (rvy+m)*cfactor]
@@ -200,24 +200,24 @@ def plot_rv_phasefolded():
 
         # Now it is time to remove the planets j != i from the data
         rv_pi = pti.rv_curve_mp(
-            mega_time, 0.0, t0_val[i], k_val[i], P_val[i], e_val[i], w_val[i], 0., 0.)
+            rv_time, 0.0, t0_val[i], k_val[i], P_val[i], e_val[i], w_val[i], 0., 0.)
         # This variable has all the planets
         rv_pall = pti.rv_curve_mp(
-            mega_time, 0.0, t0_val, k_val, P_val, e_val, w_val, 0.0, 0.0)
+            rv_time, 0.0, t0_val, k_val, P_val, e_val, w_val, 0.0, 0.0)
 
         # Let us remove all the signals from the data
-        res = np.zeros(shape=len(mega_rv))
-        for m in range(0, len(mega_rv)):
-            res[m] = mega_rv[m] - v_val[tlab[m]] - rv_pall[m]  \
-                - alpha_val*(mega_time[m] - t0_val[0]) - \
-                beta_val*(mega_time[m] - t0_val[0])**2
+        res = np.zeros(shape=len(rv_vals))
+        for m in range(0, len(rv_vals)):
+            res[m] = rv_vals[m] - v_val[tlab[m]] - rv_pall[m]  \
+                - alpha_val*(rv_time[m] - t0_val[0]) - \
+                beta_val*(rv_time[m] - t0_val[0])**2
         # Let us add the  signal of the planet i to the data
         rv_planet_i = res + rv_pi
 
         # Did we fit for a GP?
-        evec = np.asarray(mega_err)
+        evec = np.asarray(rv_errs)
         if kernel_rv[0:2] != 'No':
-            xvec = mega_time
+            xvec = rv_time
             yvec = res
             kernel_val, C = pti.pred_gp(
                 kernel_rv, pk_rv, xvec, yvec, evec, xvec, jrv, jrvlab)
@@ -231,7 +231,7 @@ def plot_rv_phasefolded():
         ejvec = np.concatenate(new_errs_all)
 
         p_rv = scale_period(rvx, t0_val[i], P_val[i])
-        p_all = scale_period(mega_time, t0_val[i], P_val[i])
+        p_all = scale_period(rv_time, t0_val[i], P_val[i])
 
         fname = outdir+'/'+star+plabels[i]+'_rv.pdf'
 #      plot_rv_fancy([p_rv,rvy,p_all,rv_planet_i,evec,ejvec,res,tlab],fname)

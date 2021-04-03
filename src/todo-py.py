@@ -524,8 +524,8 @@ def joint_fit():
             jtr_prior_vals = [1e-3, 1.e-2]*n_jtr
     else:
         n_jtr = 0
-        trlab = [0]*len(megax)
-        jtrlab = [0]*len(megax)
+        trlab = [0]*len(lc_time)
+        jtrlab = [0]*len(lc_time)
         jtr_prior_flag = ['u']*n_jtr
         jtr_prior_vals = [0., 1.e-3]*n_jtr
 
@@ -623,7 +623,7 @@ def joint_fit():
             nwalkers = nwalkers + 1
 
         pti.mcmc_stretch_move(
-            mega_time, mega_rv, megax, megay, mega_err, megae,
+            rv_time, rv_vals, lc_time, lc_flux, rv_errs, lc_errs,
             tlab, jrvlab, trlab, jtrlab,
             flags, total_fit_flag, prior_flags, prior_vals,
             kernels, model_int,
