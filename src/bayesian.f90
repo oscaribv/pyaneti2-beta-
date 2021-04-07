@@ -49,6 +49,7 @@ implicit none
   if ( kernel_rv == 'Non' .and. kernel_tr == 'Non' ) then
 
   !We are only working with white noise
+  !Let us compute the chi2
   call get_total_chi2(x_rv,y_rv,x_tr,y_tr,e_rv,e_tr, &
                            rvlab,jrvlab,trlab,jtrlab,tff,flags,&
                            t_cad,n_cad,pars,chi2_rv,chi2_tr,log_errs,npars,&
@@ -168,25 +169,26 @@ implicit none
       read(kernel_rv(3:3),'(i1)') mk
 
       !This is the V. Rajpaul Framework
+      !Find the residuals of the RV time-series, this takes into account all the modelled planets
+      !And all the RV offsets
       res_rv = 0.0
       call find_res_rv(x_rv(0:size_rv/mk-1),y_rv(0:size_rv/mk-1),rvlab(0:size_rv/mk-1),&
                      pars_rv,flag_rv,res_rv(0:size_rv/mk-1),size_rv/mk,ntels,npl)
+      !Find the residuals of the Activity indicators time-series, this takes into account aonly offsets
       do i = 1, mk - 1
           res_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) = y_rv(i*size_rv/mk:(i+1)*size_rv/mk-1) &
                                                           - pars(srv+rvlab(i*size_rv/mk:(i+1)*size_rv/mk-1))
 
       end do
 
+      !Compute the log likelihood using the multi-dimensional GP Regression
       call NLL_GP(pk_rv,kernel_rv,x_rv,res_rv,e_rv,jrv,jrvlab,nll_rv,chi2_rv,np_rv,size_rv,njrv)
-
-      nll_rv = - nll_rv
 
     else
 
       !RV GP
       call find_res_rv(x_rv,y_rv,rvlab,pars_rv,flag_rv,res_rv,size_rv,ntels,npl)
       call NLL_GP(pk_rv,kernel_rv,x_rv,res_rv,e_rv,jrv,jrvlab,nll_rv,chi2_rv,np_rv,size_rv,njrv)
-      nll_rv = - nll_rv
 
     end if
 
@@ -211,7 +213,6 @@ implicit none
       !TR GP
       call find_res_tr(x_tr,y_tr,trlab,pars_tr,rps,ldc,flag_tr,n_cad,t_cad,res_tr,size_tr,nbands,nradius,npl)
       call NLL_GP(pk_tr,kernel_tr,x_tr,res_tr,e_tr,jtr,jtrlab,nll_tr,chi2_tr,np_tr,size_tr,njtr)
-      nll_tr = - nll_tr
 
     end if
 

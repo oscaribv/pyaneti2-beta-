@@ -8,7 +8,7 @@ implicit none
   !
   integer, intent(in) :: nx1, nx2, npars
   character (len=3), intent(in) :: kernel
-  real(kind=mireal), intent(in) :: pars(0:npars-1) !There are only two parameters for this kernel
+  real(kind=mireal), intent(in) :: pars(0:npars-1)
   real(kind=mireal), intent(in) :: x1(0:nx1-1)
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
@@ -29,7 +29,7 @@ implicit none
     !-Multi-GP case
     !What is the number of dimensions?
     read(kernel(3:3),'(i1)') ndim
-    !Call the routine that computes the multi dimensional matrix
+    !Call the routine that computes the big multi-dimensional covariance matrix
     call MultidimCov(pars,x1,x2,kernel(1:2),ndim,cov,nx1,nx2)
   !---------------------------------------------
   else
@@ -46,7 +46,7 @@ implicit none
   !
   integer, intent(in) :: nx1, nx2, npars
   character (len=3), intent(in) :: kernel
-  real(kind=mireal), intent(in) :: pars(0:npars-1) !There are only two parameters for this kernel
+  real(kind=mireal), intent(in) :: pars(0:npars-1)
   real(kind=mireal), intent(in) :: x1(0:nx1-1)
   real(kind=mireal), intent(in) :: x2(0:nx2-1)
   real(kind=mireal), intent(out) :: cov(0:nx1-1,0:nx2-1)
@@ -150,7 +150,7 @@ implicit none
   !or if there are NANs, let us mark it as a bad solution
   if (chi2 < 0. .or. chi2 .ne. chi2  ) chi2 = huge(chi2)
 
-  nll = 5.d-1*(chi2 + nl2 + nx * log_two_pi)
+  nll = - 5.d-1*(chi2 + nl2 + nx * log_two_pi)
 
 end subroutine NLL_GP
 

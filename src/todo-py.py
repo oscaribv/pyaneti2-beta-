@@ -420,7 +420,10 @@ def print_values(vector, var, vartex, unit, unittex):
     medv, minv, maxv = find_vals_perc(vector, s_factor)
     nd = 1
     if (abs(minv) > 1e-20 and abs(maxv) > 1e-20):
-        nd = int(np.log10(max(1./minv, 1./maxv))) + 2
+        try:
+            nd = int(np.log10(max(1./minv, 1./maxv))) + 2
+        except:
+            pass
     opars.write('%10s = %4.7f - %4.7f + %4.7f %8s \n' %
                 (var, medv, minv, maxv, unit))
     otex.write('\\newcommand{\\'+vartex+'}[1]['+unittex+'] \

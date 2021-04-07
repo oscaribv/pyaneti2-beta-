@@ -36,7 +36,7 @@ implicit none
   i   = pars(4)
   a   = pars(5)
 
-  !Obtain the true anomaly by using find_anomaly
+  !Obtain the true anomaly by using find_anomaly_tp
   call find_anomaly_tp(t,tp,e,P,ta,ts)
 
   swt = sin(w+ta)
