@@ -707,8 +707,6 @@ def joint_fit():
         labels = np.concatenate([['#i'], ['log_posterior'], ['chi2_rv'], [
                                 'chi2_tr'], np.concatenate(labs)])
         line_prepender(newfile, labels)
-#
-
 # -----------------------------------------------------------
 #          PRINT INITIAL CONFIGURATION
 # -----------------------------------------------------------
