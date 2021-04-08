@@ -258,6 +258,8 @@ is_seaborn_plot = False
 seaborn_palette = 'deep'
 # Do we want rasterized pdf plots
 is_rasterized = True
+#Do we want to plot the correlations using a seaborn kernel?
+plot_kde_correlations = False
 
 # Figure size default, python takes inches by default
 figure_size_x = 23./2.56  # 23cm

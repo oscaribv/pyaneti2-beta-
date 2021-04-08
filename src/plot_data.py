@@ -57,11 +57,11 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
     # PLOT MODELS
     for j in range(1, len(mvector)):
         plt.plot(tmodel, mvector[j], linewidth=2.0, label=mlabels[j-1],
-                 color=model_colors[j-1], alpha=model_alpha[j-1], zorder=3)
-    #PLOT STANDARD DEVIATION OF THE MODEL, THIS IS MOSTLY FOR GPS
+                 color=model_colors[j-1], alpha=model_alpha[j-1], zorder=4)
+    #PLOT STANDARD DEVIATION OF THE MODEL
     if len(std_model) == len(tmodel):
-        plt.fill_between(tmodel,mvector[-1]-1*std_model,mvector[-1]+1*std_model,color='k',alpha=0.2)
-        plt.fill_between(tmodel,mvector[-1]-2*std_model,mvector[-1]+2*std_model,color='k',alpha=0.2)
+        plt.fill_between(tmodel,mvector[-1]-1*std_model,mvector[-1]+1*std_model,color='k',alpha=0.2,lw=0,zorder=3)
+        plt.fill_between(tmodel,mvector[-1]-2*std_model,mvector[-1]+2*std_model,color='k',alpha=0.2,lw=0,zorder=3)
     # PLOT DATA
     #Save the label of all the instruments available
     in_vec = []
@@ -327,12 +327,9 @@ def create_plot_posterior(params, plabs, cbars='red', nb=50, num=[]):
         ax0 = plt.subplot(gs[j],rasterized=is_rasterized)
         vpar, lpar, rpar = find_vals_perc(params[i], 1.0)
         moda = my_mode(params[i])
-        #best_val = params[i][minchi2_index]
-        # plt.axvline(x=best_val,c='yellow')
-        plt.axvline(x=vpar, c=cbars)
-        plt.axvline(x=moda, c='y', ls='-.')
-        plt.axvline(x=vpar-lpar, c=cbars, ls='--')
-        plt.axvline(x=vpar+rpar, c=cbars, ls='--')
+        plt.axvline(x=vpar, c='k',label='Mean',zorder=2)
+        plt.axvline(x=moda, c='y', ls='-.',label='Mode',zorder=2)
+        plt.axvspan(vpar-lpar, vpar+rpar, color='#CE1126', alpha=0.7, lw=0,label='68.3% C.I.')
         plt.xlabel(plabs[i])
         if (j % n_columns_posterior == 0):
             plt.ylabel('Frequency')
@@ -341,11 +338,11 @@ def create_plot_posterior(params, plabs, cbars='red', nb=50, num=[]):
         plt.tick_params(axis='x', which='both', direction='in')
         if (is_seaborn_plot):
             #sns.kdeplot(params[i],label='Posterior, P(M|D)')
-            plt.hist(params[i], density=True, bins=nb,
-                     histtype='step', label='Posterior, P(M|D)')
+            plt.hist(params[i], density=True, bins=nb,color='#006341',
+                     histtype='stepfilled', label='Posterior',alpha=0.8)
         else:
-            plt.hist(params[i], density=True, bins=nb,
-                     histtype='step', label='Posterior, P(M|D)')
+            plt.hist(params[i], density=True, bins=nb,color='#006341',
+                     histtype='stepfilled', label='Posterior',alpha=0.8)
         # Let us plot the prior ranges over the posterior distributions
         if is_plot_prior:
             lx, rx = ax0.get_xlim()
@@ -356,8 +353,7 @@ def create_plot_posterior(params, plabs, cbars='red', nb=50, num=[]):
             for k in range(0, len(locx)):
                 lp[k] = pti.get_priors(
                     priorf[i], [priorl[i*2], priorl[i*2+1]], locx[k])
-            plt.plot(locx, lp, alpha=0.8, color='g', label='prior, P(M)')
-            # plt.fill_between(locx,lp,alpha=0.3,color='g',label='P(M)')
+            plt.plot(locx, lp, alpha=1, color='#0080ff', label='Prior')
         #
         if (i == n[0]):
             plt.legend(loc=0, ncol=1, scatterpoints=1,
@@ -374,6 +370,9 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
 
     fname = outdir+'/'+star+'_correlations.pdf'
     print('Creating ', fname)
+
+    if plot_kde_correlations:
+        print("You set plot_kde_correlations=True, this may take a time to plot for runs with a lot of parameters")
 
     if (len(num) < 1):
         n = list(range(len(params)))
@@ -409,8 +408,9 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 plt.xlabel(plabs[j], fontsize=12)
                 plt.tick_params(axis='x', which='both',
                                 direction='in', labelbottom=True,rotation=45,labelsize=8)
+            #PLOT POSTERIORS
             if j == i:
-                plt.hist(params[j],bins=50,density=True,histtype='step',color='b')
+                plt.hist(params[j],bins=50,density=True,histtype='stepfilled',color='#006341',zorder=1,alpha=0.8)
                 #sns.kdeplot(params[j])
                 if is_plot_prior:
                     lx, rx = ax0.get_xlim()
@@ -421,16 +421,19 @@ def create_plot_correlation(params, plabs, col='red', mark='.', num=[],is_plot_p
                 for k in range(0, len(locx)):
                     lp[k] = pti.get_priors(
                             priorf[i], [priorl[i*2], priorl[i*2+1]], locx[k])
-                plt.plot(locx, lp, alpha=0.8, color='#00b300', label='prior, P(M)',lw=1)
+                plt.plot(locx, lp, alpha=0.8, color='#0080ff', label='Prior',lw=1,zorder=2)
                 vpar, lpar, rpar = find_vals_perc(params[i], 1.0)
-                plt.axvline(x=vpar, c='#cc0000')
-                plt.axvline(x=vpar-lpar, c='#cc0000', ls='--')
-                plt.axvline(x=vpar+rpar, c='#cc0000', ls='--')
+                moda = my_mode(params[i])
+                plt.axvline(x=vpar, c='k',label='Mean',zorder=2)
+                #plt.axvline(x=moda, c='y', ls='-.',label='Mode',zorder=2)
+                plt.axvspan(vpar-lpar, vpar+rpar, color='#CE1126', alpha=0.7, lw=0,label='68.3% credible interval',zorder=0)
                 plt.xlim(*limits[o])
             else:
-                z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm())
-                #sns.kdeplot(params[j], params[i],levels=4,color='k')
-                #plt.plot(params[j],params[i],'b.',alpha=0.01,markersize=0.5,color='#007fff')
+                if plot_kde_correlations:
+                    sns.kdeplot(params[j], params[i],levels=4,color='k')
+                    plt.plot(params[j],params[i],'.',alpha=0.05,markersize=0.5,color='#006341')
+                else:
+                    z, xbins, ybins, image = plt.hist2d(params[j], params[i], bins=50, norm=LogNorm(),cmap='Greens')
                 plt.xlim(*limits[p])
                 plt.ylim(*limits[o])
 
