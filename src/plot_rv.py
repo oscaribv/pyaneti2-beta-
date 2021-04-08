@@ -198,6 +198,21 @@ def plot_rv_phasefolded():
             rvx, 0.0, t0_val[i], k_val[i], P_val[i], e_val[i], w_val[i], 0.0, 0.0)
         # rvx and rvy are the model timeseries for planet i
 
+        #Let us compute the shadow region for the RV plots
+        rv_std = []
+        if plot_rv_std:
+            #Compute 1000 random models from the samples
+            rvy_vec = [None]*1000
+            for j in range(1000):
+                my_j = np.random.randint(len(T0_vec[i]))
+                rvy_vec[j] = pti.rv_curve_mp(
+                    rvx, 0.0, T0_vec[i][j], k_vec[i][j], P_vec[i][j], e_vec[i][j], w_vec[i][j], 0.0, 0.0)
+            #Compute the standard deviation of the models sample
+            rv_std = np.std(rvy_vec,axis=0)
+            rv_std *= cfactor
+
+
+
         # Now it is time to remove the planets j != i from the data
         rv_pi = pti.rv_curve_mp(
             rv_time, 0.0, t0_val[i], k_val[i], P_val[i], e_val[i], w_val[i], 0., 0.)
@@ -252,4 +267,4 @@ def plot_rv_phasefolded():
         fmt='%4.8f  %4.8f  %4.8f  %4.8f  %4.8f  %i')
         np.savetxt(fname[:-4]+'-model.dat',rv_mvec.T,header='phase rv_planet'+plabels[i]+'(m/s)',fmt='%4.8f  %8.8f')
         create_nice_plot(rv_mvec, rv_dvec, plot_labels_rv,
-                         model_labels, tellabs, fname,colors=rv_colors)
+                         model_labels, tellabs, fname,colors=rv_colors,std_model=rv_std)

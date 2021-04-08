@@ -338,6 +338,9 @@ rv_markersize = 8
 # Type of marker in the RV plot
 rv_fillstyle = 'full'
 
+#Control if we want to plot the standard deviation of the models in the phase_folded_plot
+#Default is false
+plot_rv_std = False
 
 # ----------------------------------------------------------------
 #                     OTHER CONTROLS
