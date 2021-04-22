@@ -20,10 +20,9 @@ def create_folded_tr_plots():
 
     for o in range(nplanets):
 
+        tr_vector = [None]*nbands
+
         if (fit_tr[o]):
-
-            tr_vector = [None]*nbands
-
 
             for m in range(nbands):
 
@@ -42,10 +41,12 @@ def create_folded_tr_plots():
                                     np.array([0.]),np.array([1.]),np.array([1.]), \
                                     np.array([0.]),np.array([1.])
 
-            transpose_tr = np.asarray(tr_vector,dtype=object)
-            transpose_tr = transpose_tr.transpose()
-            fancy_tr_plot(transpose_tr, o)
+            #Transposing the list to feed fancy_tr_plot as requiered
+            #note that trasposing as numpy arrays was creating some issues
+            #solved using https://stackoverflow.com/questions/6473679/transpose-list-of-lists
+            transpose_tr = list(map(list, zip(*tr_vector)))
 
+            fancy_tr_plot(transpose_tr, o)
 
 # these lists contains all the information for a given label
 def fancy_tr_plot(tr_vector, pnumber):
@@ -203,7 +204,7 @@ def create_tr_vector(time, flujo, eflujo, trlab, pars_tr, rp, plabel, bandlab):
     if ( span_tr[0] > 0.):
         span = span_tr[plabel]
 
-    indices = []
+    #indices = []
     phase = abs(((time-T0)%P)/P)
     phase[phase>0.5] -= 1
     indices = abs(phase) <= span/P

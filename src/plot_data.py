@@ -69,14 +69,14 @@ def create_nice_plot(mvector, dvector, labels, mlabels, inst_labels, fname,
         if l not in in_vec:
             in_vec.append(int(l))
     #Now we can plot the data
-    for j in in_vec:
+    for i,j in enumerate(in_vec):
         indices = np.asarray(labvec) == j
         #Plot jitter term
         plt.errorbar(tdata[indices], ydata[indices], ejdata[indices], fmt='.',
-                     alpha=0.3, color=colors[j], markersize=rv_markersize, fillstyle='none', zorder=1)
+                     alpha=0.3, color=colors[i], markersize=rv_markersize, fillstyle='none', zorder=1)
         # This one plots the legacy error bars
         plt.errorbar(tdata[indices], ydata[indices], edata[indices],
-                     fmt=mark[j], alpha=1.0, color=colors[j],
+                     fmt=mark[i], alpha=1.0, color=colors[i],
                      markersize=rv_markersize, fillstyle=rv_fillstyle, zorder=2,label=inst_labels[j])
     if (is_rv_legend):
         plt.legend(ncol=1, scatterpoints=1, numpoints=1,
