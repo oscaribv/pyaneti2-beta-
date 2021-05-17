@@ -26,7 +26,7 @@ from astropy.time import Time
 #Brute force function to create times in which the target is observed from a given observatory
 #This function create a times vector of lenght ndata in which the star is observed at the observatory
 #in the interval between tmin and tmax
-def create_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-100',observatory='lapalma'):
+def create_real_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-100',observatory='lapalma'):
     times = []
     #Create a observatory instance with astroplan
     observatory = Observer.at_site(observatory)
@@ -51,23 +51,22 @@ def create_times(tmin,tmax,ndata=50,air_mass_limit=1.5,tformat='mjd',star='K2-10
     return np.array(times)
 
 
-class citlalatonac():
+class citlali():
     """
     Class to create simulated RVs and acitivity/simmetry indicators assuming they all can be described
     by the same Gaussian Process (following Rajpaul et al., 2015, MNRAS, 442, 2269).
     """
 
 
-    def __init__(self,time=[],tmin=0,tmax=60,offset_rv=0,\
+    def __init__(self,time=[],tmin=0,tmax=60,nseries=3,\
                  amplitudes=[0.0058,0.0421,0.024,0.0,0.02,-0.86],
                  kernel_parameters=[31.2,0.55,4.315], kernel='QPK',
-                 time_series=['rhk','bis'],
+                 time_series=[],
                  points_per_day=10,seed=123):
         """
         Input parameters:
         tmin        -> minimum temporal value
         tmax        -> maximum temporal value
-        offset_rv   -> systematic velocity of the star to simulate
         amplitudes  -> Amplitudes of the mutli-GP approach, each time-series has to amplitudes following Rajpaul et al., 2015.
         kernel_parameter -> Hyper-parameters for the given kernel
         kernel      -> Chose the kernel,Quasi-Periodic Kernel 'QPK', Matern 5/2 'M52', Exponential 'EXP'
@@ -75,7 +74,6 @@ class citlalatonac():
         seed        -> Set a seed for random numbers
 
         The instance has the following attributes:
-        offset_rv   -> radial velocity offset
         amplitudes  -> Amplitudes that relate the time-series (see Rajpaul et al., 2015)
         time        -> time-stamps between tmin and tmax
         seed        -> Seed used to create the time-series
@@ -89,8 +87,6 @@ class citlalatonac():
         self.kernel_parameters = kernel_parameters
         #Multi-GP amplitudes as attribute
         self.amplitudes = amplitudes[:]
-        #RV offset
-        self.offset_rv = offset_rv
 
         if len(time) > 0:
             self.time = time
@@ -98,16 +94,9 @@ class citlalatonac():
             #Create vector time
             self.time = np.linspace(tmin,tmax,int(points_per_day*(tmax-tmin)))
 
-        #offset to RVs
-        self.rvs  = np.array([self.offset_rv]*len(self.time))
-
         #Initiate random seed
         self.seed = seed
         np.random.seed(self.seed)
-
-        #How many timeseries do we have?
-        #Assuming that we have two amplitudes per time-series
-        nseries = len(amplitudes)//2
 
         #Create timeseries to be used in case they were not given as input
         if len(time_series) == 0: time_series = [ 'a'+str(i) for i in range(1,nseries)]
